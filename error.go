@@ -1,7 +1,7 @@
 package framework
 
 import (
-	"fmt"
+	"encoding/json"
 )
 
 type TError interface {
@@ -11,27 +11,28 @@ type TError interface {
 }
 
 type CoreError struct {
-	code string
-	msg  string
+	Code string `json:"code"`
+	Msg  string `json:"msg"`
 }
 
 func (this_ *CoreError) GetCode() string {
-	return this_.code
+	return this_.Code
 }
 
 func (this_ *CoreError) GetMsg() string {
-	return this_.msg
+	return this_.Msg
 }
 
 func (this_ *CoreError) Error() string {
-	return fmt.Sprintf("code:%s , msg:%s", this_.code, this_.msg)
+	bs, _ := json.Marshal(this_)
+	return string(bs)
 }
 
 // NewError 构造异常对象，code为错误码，msg为错误信息
 func NewError(code string, msg string) *CoreError {
 	err := &CoreError{
-		code: code,
-		msg:  msg,
+		Code: code,
+		Msg:  msg,
 	}
 	return err
 }

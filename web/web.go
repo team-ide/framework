@@ -228,6 +228,43 @@ type WebServer struct {
 	IWebService
 
 	framework.Logger
+
+	webFilters      []WebFilter
+	webInterceptors []WebInterceptor
+	webApiRouters   []*WebApiRouter
+}
+
+func (this_ *WebServer) AddWebFilters(webFilters ...WebFilter) *WebServer {
+	this_.webFilters = append(this_.webFilters, webFilters...)
+	return this_
+}
+
+func (this_ *WebServer) AddWebInterceptors(webInterceptors ...WebInterceptor) *WebServer {
+	this_.webInterceptors = append(this_.webInterceptors, webInterceptors...)
+	return this_
+}
+
+func (this_ *WebServer) AddWebApiRouters(webApiRouters ...*WebApiRouter) *WebServer {
+	this_.webApiRouters = append(this_.webApiRouters, webApiRouters...)
+	return this_
+}
+
+func (this_ *WebServer) AddWebApis(webApis ...*WebApi) *WebServer {
+	for _, webApi := range webApis {
+		this_.AddWebApi(webApi)
+	}
+	return this_
+}
+
+func (this_ *WebServer) AddWebApi(webApi *WebApi) *WebServer {
+	for _, router := range webApi.routers {
+		router.Path = webApi.Path + router.Path
+		if router.Method == "" {
+			router.Method = webApi.Method
+		}
+		this_.webApiRouters = append(this_.webApiRouters, router)
+	}
+	return this_
 }
 
 func (this_ *WebServer) Close() {
@@ -297,6 +334,7 @@ func (this_ *WebServer) init() (err error) {
 
 func (this_ *WebServer) initFilters() (err error) {
 	list := GetWebFilterList(this_.name)
+	list = append(list, this_.webFilters...)
 
 	// Order 正序 排序
 	sort.Slice(list, func(i, j int) bool {
@@ -323,6 +361,8 @@ func (this_ *WebServer) initFilters() (err error) {
 
 func (this_ *WebServer) initInterceptors() (err error) {
 	list := GetWebInterceptorList(this_.name)
+	list = append(list, this_.webInterceptors...)
+
 	// Order 正序 排序
 	sort.Slice(list, func(i, j int) bool {
 		return list[i].Order() < list[j].Order()
@@ -348,6 +388,8 @@ func (this_ *WebServer) initInterceptors() (err error) {
 
 func (this_ *WebServer) initApiRouters() (err error) {
 	list := GetWebApiRouterList(this_.name)
+	list = append(list, this_.webApiRouters...)
+
 	for _, one := range list {
 		this_.addApiRouter(one)
 	}
