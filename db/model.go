@@ -2,9 +2,17 @@ package db
 
 import (
 	"errors"
+	"github.com/team-ide/framework/util"
 	"reflect"
 	"strings"
 )
+
+func NewModelSelect(model any) (res *ModelSelect) {
+	res = &ModelSelect{}
+	res.model = model
+	res.ModelSetting = &ModelSetting{}
+	return
+}
 
 type ModelSelect struct {
 	// 如果设置了 model 根据属性值查询
@@ -103,6 +111,12 @@ func (this_ *ModelSelect) GetSql() (sqlInfo string, args []any, err error) {
 	}
 	return
 }
+func NewModelCount(model any) (res *ModelCount) {
+	res = &ModelCount{}
+	res.model = model
+	res.ModelSetting = &ModelSetting{}
+	return
+}
 
 type ModelCount struct {
 	// 如果设置了 model 根据属性值查询
@@ -140,6 +154,13 @@ func (this_ *ModelCount) GetSql() (sqlInfo string, args []any, err error) {
 		sqlInfo += " WHERE " + whereSql
 		args = append(args, whereArgs...)
 	}
+	return
+}
+
+func NewModelInsert(model any) (res *ModelInsert) {
+	res = &ModelInsert{}
+	res.model = model
+	res.ModelSetting = &ModelSetting{}
 	return
 }
 
@@ -203,6 +224,13 @@ func (this_ *ModelInsert) GetSql() (sqlInfo string, args []any, err error) {
 	return
 }
 
+func NewModelUpdate(model any) (res *ModelUpdate) {
+	res = &ModelUpdate{}
+	res.model = model
+	res.ModelSetting = &ModelSetting{}
+	return
+}
+
 type ModelUpdate struct {
 	// 需要更新的 model 只会根据 属性值设置更新 不根据属性值查询
 	model any
@@ -247,7 +275,7 @@ func (this_ *ModelUpdate) GetSql() (sqlInfo string, args []any, err error) {
 
 	columns, values := b.GetColumnValues(b.modelValue)
 	var wrapColumns []string
-	var wrapValues []*FieldValue
+	var wrapValues []*util.FieldValue
 	for i, column := range columns {
 		if !this_.Included(column, values[i]) {
 			continue
@@ -291,6 +319,13 @@ func (this_ *ModelUpdate) GetSql() (sqlInfo string, args []any, err error) {
 		sqlInfo += " WHERE " + whereSql
 		args = append(args, whereArgs...)
 	}
+	return
+}
+
+func NewModelDelete(model any) (res *ModelDelete) {
+	res = &ModelDelete{}
+	res.model = model
+	res.ModelSetting = &ModelSetting{}
 	return
 }
 
@@ -542,7 +577,7 @@ func (this_ *ModelSetting) IsExcludeColumn(column string) bool {
 	return strings.Contains(this_.excludeColumnsStr, ","+strings.ToLower(column)+",")
 }
 
-func (this_ *ModelSetting) Included(columnName string, columnValue *FieldValue) bool {
+func (this_ *ModelSetting) Included(columnName string, columnValue *util.FieldValue) bool {
 	if columnName != "" {
 		if len(this_.excludeColumns) > 0 {
 			// 如果是 排除字段 直接返回 不包含
@@ -576,7 +611,7 @@ func (this_ *ModelSetting) Included(columnName string, columnValue *FieldValue) 
 	return true
 }
 
-func (this_ *ModelSetting) GetValue(columnValue *FieldValue) (isNull bool, res any) {
+func (this_ *ModelSetting) GetValue(columnValue *util.FieldValue) (isNull bool, res any) {
 	if this_.zeroUseNull && columnValue.IsZero() {
 		isNull = true
 		return
@@ -585,7 +620,7 @@ func (this_ *ModelSetting) GetValue(columnValue *FieldValue) (isNull bool, res a
 		isNull = true
 		return
 	}
-	isNull = columnValue.isNull
+	isNull = columnValue.IsNull()
 	res = columnValue.GetData()
 	return
 }

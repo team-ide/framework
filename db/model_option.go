@@ -9,6 +9,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/team-ide/framework/util"
 )
 
 var (
@@ -39,7 +41,7 @@ type ModelOption struct {
 }
 
 type FiledGetColumn func() string
-type FiledGetValue func(columnName string, columnValue *FieldValue) any
+type FiledGetValue func(columnName string, columnValue *util.FieldValue) any
 
 func (this_ *ModelOption) SetGetColumn(getColumn FiledGetColumn) *ModelOption {
 	this_.getColumn = getColumn
@@ -50,35 +52,7 @@ func (this_ *ModelOption) SetGetValue(getValue FiledGetValue) *ModelOption {
 	return this_
 }
 
-type FieldValue struct {
-	value     reflect.Value
-	valueType reflect.Type
-	data      any
-	isNull    bool
-	isZero    bool
-	isEmpty   bool
-}
-
-func (this_ *FieldValue) GetValueType() reflect.Type {
-	return this_.valueType
-}
-func (this_ *FieldValue) GetValue() reflect.Value {
-	return this_.value
-}
-func (this_ *FieldValue) GetData() any {
-	return this_.data
-}
-func (this_ *FieldValue) IsNull() bool {
-	return this_.isNull
-}
-func (this_ *FieldValue) IsZero() bool {
-	return this_.isZero
-}
-func (this_ *FieldValue) IsEmpty() bool {
-	return this_.isEmpty
-}
-
-func (this_ *ModelOption) GetColumnValues(modelV reflect.Value) (columns []string, values []*FieldValue) {
+func (this_ *ModelOption) GetColumnValues(modelV reflect.Value) (columns []string, values []*util.FieldValue) {
 	modelType := modelV.Type()
 	modelInfo := this_.GetModelInfo(modelType)
 
@@ -86,7 +60,7 @@ func (this_ *ModelOption) GetColumnValues(modelV reflect.Value) (columns []strin
 		modelV = modelV.Elem()
 	}
 
-	if modelInfo.isMap {
+	if modelInfo.IsMap {
 		// 直接 解析 key value
 
 		for _, kV := range modelV.MapKeys() {
@@ -98,14 +72,14 @@ func (this_ *ModelOption) GetColumnValues(modelV reflect.Value) (columns []strin
 			vV := modelV.MapIndex(kV)
 
 			columns = append(columns, columnName)
-			fieldValue := FieldValueByValue(vV)
+			fieldValue := util.FieldValueByValue(vV)
 			values = append(values, fieldValue)
 		}
 		return
 	}
 	for _, column := range modelInfo.columns {
 		var filedV reflect.Value
-		if column.parentFiled == nil {
+		if column.ParentFiled == nil {
 			filedV = modelV.Field(column.Index)
 		} else {
 			//if column.parentFiled.IsPtr {
@@ -118,7 +92,7 @@ func (this_ *ModelOption) GetColumnValues(modelV reflect.Value) (columns []strin
 		}
 		columns = append(columns, column.ColumnName)
 
-		fieldValue := FieldValueByValue(filedV)
+		fieldValue := util.FieldValueByValue(filedV)
 		values = append(values, fieldValue)
 	}
 	return
@@ -132,7 +106,7 @@ func (this_ *ModelOption) GetColumns(modelV reflect.Value) (columns []string) {
 		modelV = modelV.Elem()
 	}
 
-	if modelInfo.isMap {
+	if modelInfo.IsMap {
 		// 直接 解析 key value
 
 		for _, kV := range modelV.MapKeys() {
@@ -151,7 +125,7 @@ func (this_ *ModelOption) GetColumns(modelV reflect.Value) (columns []string) {
 	return
 }
 
-func (this_ *ModelOption) GetColumnValue(modelV reflect.Value, columnName string) (fieldValue *FieldValue) {
+func (this_ *ModelOption) GetColumnValue(modelV reflect.Value, columnName string) (fieldValue *util.FieldValue) {
 	modelType := modelV.Type()
 	modelInfo := this_.GetModelInfo(modelType)
 
@@ -159,18 +133,18 @@ func (this_ *ModelOption) GetColumnValue(modelV reflect.Value, columnName string
 		modelV = modelV.Elem()
 	}
 
-	if modelInfo.isMap {
+	if modelInfo.IsMap {
 		// 直接 解析 key value
 		vV := modelV.MapIndex(reflect.ValueOf(columnName))
 
-		fieldValue = FieldValueByValue(vV)
+		fieldValue = util.FieldValueByValue(vV)
 		return
 	}
 	for _, column := range modelInfo.columns {
 		if column.ColumnName == columnName {
 
 			var filedV reflect.Value
-			if column.parentFiled == nil {
+			if column.ParentFiled == nil {
 				filedV = modelV.Field(column.Index)
 			} else {
 				//if column.parentFiled.IsPtr {
@@ -181,92 +155,27 @@ func (this_ *ModelOption) GetColumnValue(modelV reflect.Value, columnName string
 				//}
 				filedV = modelV.FieldByName(column.FieldName)
 			}
-			fieldValue = FieldValueByValue(filedV)
+			fieldValue = util.FieldValueByValue(filedV)
 			return
 		}
 	}
 	return
 }
 
-func FieldValueByValue(v reflect.Value) (res *FieldValue) {
-	res = &FieldValue{}
-	res.value = v
-	res.valueType = v.Type()
-	if v.IsValid() {
-		vKind := v.Kind()
-		switch vKind {
-		case reflect.String:
-			res.isEmpty = v.String() == ""
-		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-			res.isZero = v.Int() == 0
-		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
-			res.isZero = v.Uint() == 0
-		case reflect.Float32, reflect.Float64:
-			res.isZero = v.Float() == 0
-		case reflect.Complex64, reflect.Complex128:
-			rc := real(v.Complex())
-			ic := imag(v.Complex())
-			res.isZero = rc == 0 && ic == 0
-		case reflect.Invalid:
-			res.isNull = true
-		case reflect.Ptr, reflect.Interface, reflect.Slice, reflect.Map, reflect.Chan, reflect.Func, reflect.UnsafePointer:
-			res.isNull = v.IsNil()
-
-		default:
-		}
-		res.data = v.Interface()
-	}
-	return
-}
-
-func FieldValueByData(data any) (res *FieldValue) {
-	return FieldValueByValue(reflect.ValueOf(data))
-}
-
 type ModelInfo struct {
-	modelType reflect.Type
-
-	isMap bool
-
-	fields []*ModelField
+	*util.StructInfo
 
 	columns     []*ModelField
 	columnMap   map[string]*ModelField
 	columnLower map[string]*ModelField
-	fieldMap    map[string]*ModelField
-	fieldLower  map[string]*ModelField
-	jsonMap     map[string]*ModelField
-	jsonLower   map[string]*ModelField
 }
 
 type ModelField struct {
-	Field reflect.StructField
-	Index int
+	*util.StructField
 
-	// 字段 是匿名 对象
-	IsAnonymous bool
-	// 匿名 对象 信息
-	AnonymousModel *ModelInfo
-
-	// 是 匿名 对象 字段 这里放置 上层的 匿名  对象字段
-	parentFiled *ModelField
-
-	IsPtr bool
-	Kind  reflect.Kind
-
-	elemType     reflect.Type
-	sqlValueType reflect.Type
-
-	// 是否 实现了 sql.Scanner 接口
-	ImplementsSqlScanner bool
-
-	FieldName  string
 	ColumnName string
-	JsonName   string
 
-	IsString bool
-	IsNumber bool
-	IsBool   bool
+	sqlValueType reflect.Type
 
 	fieldSetter FieldSetterType
 }
@@ -282,51 +191,39 @@ var (
 )
 
 func (this_ *ModelOption) GetModelInfo(inType reflect.Type) (info *ModelInfo) {
-	var modelType = inType
-	for modelType.Kind() == reflect.Ptr {
-		modelType = modelType.Elem()
+	var structType = inType
+	for structType.Kind() == reflect.Ptr {
+		structType = structType.Elem()
 	}
-	if modelType.Kind() == reflect.Map {
-		info = &ModelInfo{
-			isMap: true,
-		}
+	structInfo := util.GetStructInfo(structType)
+	if structInfo.IsMap {
+		info = &ModelInfo{}
+		info.StructInfo = structInfo
 		return
 	}
-	if cached, ok := this_.modelCache.Load(modelType); ok {
+	if cached, ok := this_.modelCache.Load(structType); ok {
 		return cached.(*ModelInfo)
 
 	}
-	loadingCache := map[reflect.Type]*ModelInfo{}
-	info = this_.loadModelInfo(modelType, loadingCache)
+	info = this_.toModelInfo(structInfo)
 
-	this_.modelCache.Store(modelType, info)
+	this_.modelCache.Store(structType, info)
 	return
 }
 
-func (this_ *ModelOption) loadModelInfo(modelType reflect.Type, loadingCache map[reflect.Type]*ModelInfo) (info *ModelInfo) {
-	info = loadingCache[modelType]
-	if info != nil {
-		return
-	}
+func (this_ *ModelOption) toModelInfo(structInfo *util.StructInfo) (info *ModelInfo) {
+
 	info = &ModelInfo{}
-	info.modelType = modelType
-	info.columnMap = map[string]*ModelField{}
-	info.columnLower = map[string]*ModelField{}
+	info.StructInfo = structInfo
+	info.columnMap = make(map[string]*ModelField)
+	info.columnLower = make(map[string]*ModelField)
 
-	info.fieldMap = map[string]*ModelField{}
-	info.fieldLower = map[string]*ModelField{}
-
-	for i := 0; i < modelType.NumField(); i++ {
-		field := modelType.Field(i)
-		modelField := &ModelField{
-			Field: field,
-			Index: i,
+	for _, field := range info.Fields {
+		if field.IsAnonymous {
+			continue
 		}
-		modelField.FieldName = field.Name
-
-		info.fields = append(info.fields, modelField)
-		info.fieldMap[modelField.FieldName] = modelField
-		info.fieldLower[strings.ToLower(modelField.FieldName)] = modelField
+		modelField := &ModelField{}
+		modelField.StructField = field
 
 		var str string
 		var columnName string
@@ -334,25 +231,16 @@ func (this_ *ModelOption) loadModelInfo(modelType reflect.Type, loadingCache map
 		if tag == "" {
 			tag = "column"
 		}
-		str = field.Tag.Get(tag)
+		str = field.Field.Tag.Get(tag)
 		if str == "" && this_.ColumnUseJsonTag {
-			str = field.Tag.Get("json")
+			str = field.Field.Tag.Get("json")
 		}
 		if str == "" && this_.ColumnUseFieldName {
-			str = field.Name
+			str = field.Field.Name
 		}
 		if str != "" && str != "-" {
 			ss := strings.Split(str, ",")
 			columnName = ss[0]
-		}
-
-		modelField.IsAnonymous = field.Anonymous
-		modelField.elemType = field.Type
-		modelField.Kind = modelField.elemType.Kind()
-		modelField.IsPtr = modelField.Kind == reflect.Ptr
-		if modelField.IsPtr {
-			modelField.elemType = modelField.elemType.Elem()
-			modelField.Kind = modelField.elemType.Kind()
 		}
 
 		modelField.ColumnName = columnName
@@ -363,7 +251,7 @@ func (this_ *ModelOption) loadModelInfo(modelType reflect.Type, loadingCache map
 			info.columnLower[strings.ToLower(columnName)] = modelField
 
 			// 检查是否实现了sql.Scanner
-			modelField.ImplementsSqlScanner = field.Type.Implements(sqlScannerType)
+			modelField.ImplementsSqlScanner = field.Field.Type.Implements(sqlScannerType)
 			//fmt.Println("Field:", modelField)
 			switch modelField.Kind {
 			case reflect.String:
@@ -393,7 +281,7 @@ func (this_ *ModelOption) loadModelInfo(modelType reflect.Type, loadingCache map
 				modelField.fieldSetter = fieldSetterBool
 			case reflect.Struct:
 				// 检查是否是time.Time
-				if modelField.elemType == timeType {
+				if modelField.ElemType == timeType {
 					var val sql.NullTime
 					modelField.sqlValueType = reflect.TypeOf(val)
 					modelField.fieldSetter = fieldSetterTime
@@ -406,27 +294,6 @@ func (this_ *ModelOption) loadModelInfo(modelType reflect.Type, loadingCache map
 				modelField.fieldSetter = fieldSetterOther
 			}
 
-		}
-	}
-	loadingCache[modelType] = info
-	for _, field := range info.fields {
-		if field.IsAnonymous && field.Kind == reflect.Struct {
-			field.AnonymousModel = this_.loadModelInfo(field.elemType, loadingCache)
-			for _, subField := range field.AnonymousModel.fields {
-				subField.parentFiled = field
-				if info.fieldMap[subField.FieldName] != nil {
-					continue
-				}
-				if subField.ColumnName != "" {
-					if info.columnLower[strings.ToLower(subField.ColumnName)] != nil {
-						continue
-					}
-
-					info.columns = append(info.columns, subField)
-					info.columnMap[subField.ColumnName] = subField
-					info.columnLower[strings.ToLower(subField.ColumnName)] = subField
-				}
-			}
 		}
 	}
 	return

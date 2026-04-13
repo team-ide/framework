@@ -42,7 +42,7 @@ func (this_ *Service) init(connProxy ConnProxy) (err error) {
 			c.SetLogger(ZKLogger)
 		}, zk.WithDialer(func(network, address string, timeout time.Duration) (net.Conn, error) {
 			conn, e := connProxy.Dial(network, address)
-			return &util.SSHChanConn{Conn: conn}, e
+			return util.NewDialerConn(conn), e
 		}))
 	} else {
 		this_.zkConn, this_.zkEvent, err = zk.Connect(this_.GetServers(), sessionTimeout, func(c *zk.Conn) {

@@ -99,3 +99,28 @@ func JsonBytesToObj(bs []byte, obj any) (err error) {
 	err = JSONDecode(bs, obj)
 	return
 }
+
+type CustomJson struct {
+	// 忽略的 字段
+	ignore []string
+	// 字段排序 优先输出 排序的字段
+	order []string
+	// 将 int64 转为 string 输出
+	longToString bool
+}
+
+func (this_ *CustomJson) Ignore(names ...string) *CustomJson {
+	this_.ignore = append(this_.ignore, names...)
+	return this_
+}
+func (this_ *CustomJson) Order(names ...string) *CustomJson {
+	this_.order = append(this_.order, names...)
+	return this_
+}
+func (this_ *CustomJson) Marshal(obj any) (bs []byte, err error) {
+	return
+}
+
+func (this_ *CustomJson) Unmarshal(bs []byte, obj any) (err error) {
+	return
+}

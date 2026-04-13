@@ -757,6 +757,15 @@ func (this_ *WebRequest) RawQuery() string {
 	return this_.webServer.RawQuery(this_)
 }
 
+func (this_ *WebRequest) GetPathParam() string {
+	rawQuery := this_.webServer.RawQuery(this_)
+	dot := strings.Index(rawQuery, "?")
+	if dot >= 0 {
+		return rawQuery[dot+1:]
+	}
+	return ""
+}
+
 func (this_ *WebRequest) GetData() []byte {
 	return this_.webServer.RequestRead(this_)
 }

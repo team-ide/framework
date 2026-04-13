@@ -72,7 +72,7 @@ func (this_ *ClusterService) init(connProxy ConnProxy) (err error) {
 	if connProxy != nil {
 		options.Dialer = func(ctx context.Context, network, addr string) (net.Conn, error) {
 			conn, e := connProxy.Dial("tcp", addr)
-			return &util.SSHChanConn{Conn: conn}, e
+			return util.NewDialerConn(conn), e
 		}
 	}
 

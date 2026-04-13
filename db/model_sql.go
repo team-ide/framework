@@ -2,6 +2,7 @@ package db
 
 import (
 	"errors"
+	"github.com/team-ide/framework/util"
 	"strings"
 )
 
@@ -250,10 +251,10 @@ func (this_ *SqlUpdate) SetWhere(where *Conditions) *SqlUpdate {
 	return this_
 }
 
-func GetInsertOrUpdateColumnValues(list []*InsertOrUpdateValue) (columns []string, values []*FieldValue) {
+func GetInsertOrUpdateColumnValues(list []*InsertOrUpdateValue) (columns []string, values []*util.FieldValue) {
 	for _, one := range list {
 		columns = append(columns, one.Column)
-		fieldValue := FieldValueByData(one.Value)
+		fieldValue := util.FieldValueByData(one.Value)
 		values = append(values, fieldValue)
 	}
 	return
@@ -274,7 +275,7 @@ func (this_ *SqlUpdate) GetSql() (sqlInfo string, args []any, err error) {
 
 	columns, values := GetInsertOrUpdateColumnValues(vs)
 	var wrapColumns []string
-	var wrapValues []*FieldValue
+	var wrapValues []*util.FieldValue
 	for i, column := range columns {
 		if !this_.Included(column, values[i]) {
 			continue

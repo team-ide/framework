@@ -353,8 +353,11 @@ func (this_ *Service) SqlSelect(table string, columns ...string) (res *SqlSelect
 	return
 }
 
-type IModelSql interface {
+type IGetSql interface {
 	GetSql() (sqlInfo string, args []any, err error)
+}
+type IModelSql interface {
+	IGetSql
 	GetService() (service IService)
 }
 

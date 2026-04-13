@@ -390,7 +390,7 @@ func DoQueryListStruct[S any](ctx context.Context, sqlConn SqlConn, sqlInfo stri
 			if field != nil {
 				if field.ImplementsSqlScanner {
 					// 如果字段实现了Scanner，使用字段类型创建Scanner
-					receiver := reflect.New(field.elemType).Interface()
+					receiver := reflect.New(field.ElemType).Interface()
 					receivers[i] = receiver
 				} else {
 					if field.sqlValueType != nil {
@@ -423,13 +423,13 @@ func DoQueryListStruct[S any](ctx context.Context, sqlConn SqlConn, sqlInfo stri
 				continue
 			}
 			var oneField reflect.Value
-			if field.parentFiled == nil {
+			if field.ParentFiled == nil {
 				oneField = one.Field(field.Index)
 			} else {
-				if field.parentFiled.IsPtr {
-					parentField := one.Field(field.parentFiled.Index)
+				if field.ParentFiled.IsPtr {
+					parentField := one.Field(field.ParentFiled.Index)
 					if parentField.IsNil() {
-						parentFieldV := reflect.New(field.parentFiled.elemType)
+						parentFieldV := reflect.New(field.ParentFiled.ElemType)
 						parentField.Set(parentFieldV)
 					}
 				}

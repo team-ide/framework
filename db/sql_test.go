@@ -56,7 +56,7 @@ if(name.length > 0){
 	}
 }
 
-func TestOrm(t *testing.T) {
+func TestMapper(t *testing.T) {
 	var err error
 	testUserMapper := NewTestUserMapper()
 	err = testUserMapper.Insert(&TestUser{Name: "xxx"})
@@ -70,17 +70,6 @@ func TestOrm(t *testing.T) {
 		return
 	}
 
-}
-
-func OrmOutSql(orm *Orm) {
-	orm.SetSqlHandler(testSqlHandler)
-	sqlInfo, args, err := orm.GetSql()
-	if err != nil {
-		panic(err.Error())
-		return
-	}
-	fmt.Println(sqlInfo)
-	fmt.Println(util.GetStringValue(args))
 }
 
 var (
@@ -128,8 +117,9 @@ type TestUserMapper struct {
 }
 
 func (this_ *TestUserMapper) Query(user *TestUser) (err error) {
-	orm := OrmSelect(user).SetSqlHandler(testSqlHandler)
-	sqlInfo, args, err := orm.GetSql()
+	m := NewModelSelect(user)
+	m.SetSqlHandler(testSqlHandler)
+	sqlInfo, args, err := m.GetSql()
 	if err != nil {
 		panic(err.Error())
 		return
@@ -140,21 +130,23 @@ func (this_ *TestUserMapper) Query(user *TestUser) (err error) {
 }
 
 func (this_ *TestUserMapper) Count(user *TestUser) (err error) {
-	orm := OrmCount(user).SetSqlHandler(testSqlHandler)
-	sqlInfo, args, err := orm.GetSql()
+	m := NewModelCount(user)
+	m.SetSqlHandler(testSqlHandler)
+	sqlInfo, args, err := m.GetSql()
 	if err != nil {
 		panic(err.Error())
 		return
 	}
-	framework.Info("select sql:" + sqlInfo)
-	framework.Info("select sql args:" + util.GetStringValue(args))
+	framework.Info("count sql:" + sqlInfo)
+	framework.Info("count sql args:" + util.GetStringValue(args))
 	return
 }
 
 func (this_ *TestUserMapper) GetById(userId int64) (res *TestUser, err error) {
-	orm := OrmSelect(&TestUser{}).SetSqlHandler(testSqlHandler)
-	orm.Where().Eq("user_id", userId)
-	sqlInfo, args, err := orm.GetSql()
+	m := NewModelSelect(&TestUser{})
+	m.SetSqlHandler(testSqlHandler)
+	m.Where().Eq("user_id", userId)
+	sqlInfo, args, err := m.GetSql()
 	if err != nil {
 		panic(err.Error())
 		return
@@ -165,9 +157,10 @@ func (this_ *TestUserMapper) GetById(userId int64) (res *TestUser, err error) {
 }
 
 func (this_ *TestUserMapper) GetByIds(userIds []int64) (res []*TestUser, err error) {
-	orm := OrmSelect(&TestUser{}).SetSqlHandler(testSqlHandler)
-	orm.Where().In("user_id", util.ListInt64ToAny(userIds)...)
-	sqlInfo, args, err := orm.GetSql()
+	m := NewModelSelect(&TestUser{})
+	m.SetSqlHandler(testSqlHandler)
+	m.Where().In("user_id", userIds)
+	sqlInfo, args, err := m.GetSql()
 	if err != nil {
 		panic(err.Error())
 		return
@@ -178,9 +171,10 @@ func (this_ *TestUserMapper) GetByIds(userIds []int64) (res []*TestUser, err err
 }
 
 func (this_ *TestUserMapper) QueryByAccount(account string) (res []*TestUser, err error) {
-	orm := OrmSelect(&TestUser{}).SetSqlHandler(testSqlHandler)
-	orm.Where().Eq("account", account)
-	sqlInfo, args, err := orm.GetSql()
+	m := NewModelSelect(&TestUser{})
+	m.SetSqlHandler(testSqlHandler)
+	m.Where().Eq("account", account)
+	sqlInfo, args, err := m.GetSql()
 	if err != nil {
 		panic(err.Error())
 		return
@@ -191,8 +185,9 @@ func (this_ *TestUserMapper) QueryByAccount(account string) (res []*TestUser, er
 }
 
 func (this_ *TestUserMapper) Insert(user *TestUser) (err error) {
-	orm := OrmInsert(user).SetSqlHandler(testSqlHandler)
-	sqlInfo, args, err := orm.GetSql()
+	m := NewModelInsert(user)
+	m.SetSqlHandler(testSqlHandler)
+	sqlInfo, args, err := m.GetSql()
 	if err != nil {
 		panic(err.Error())
 		return
@@ -203,9 +198,10 @@ func (this_ *TestUserMapper) Insert(user *TestUser) (err error) {
 }
 
 func (this_ *TestUserMapper) Update(userId int64, user *TestUser) (err error) {
-	orm := OrmUpdate(user).SetSqlHandler(testSqlHandler)
-	orm.Where().Eq("user_id", userId)
-	sqlInfo, args, err := orm.GetSql()
+	m := NewModelUpdate(user)
+	m.SetSqlHandler(testSqlHandler)
+	m.Where().Eq("user_id", userId)
+	sqlInfo, args, err := m.GetSql()
 	if err != nil {
 		panic(err.Error())
 		return
@@ -216,9 +212,10 @@ func (this_ *TestUserMapper) Update(userId int64, user *TestUser) (err error) {
 }
 
 func (this_ *TestUserMapper) Delete(userId int64) (err error) {
-	orm := OrmDelete(nil).SetSqlHandler(testSqlHandler)
-	orm.Where().Eq("user_id", userId)
-	sqlInfo, args, err := orm.GetSql()
+	m := NewModelDelete(nil)
+	m.SetSqlHandler(testSqlHandler)
+	m.Where().Eq("user_id", userId)
+	sqlInfo, args, err := m.GetSql()
 	if err != nil {
 		panic(err.Error())
 		return
@@ -228,9 +225,10 @@ func (this_ *TestUserMapper) Delete(userId int64) (err error) {
 	return
 }
 func (this_ *TestUserMapper) BatchDelete(userIds []int64) (err error) {
-	orm := OrmDelete(nil).SetSqlHandler(testSqlHandler)
-	orm.Where().In("user_id", util.ListInt64ToAny(userIds)...)
-	sqlInfo, args, err := orm.GetSql()
+	m := NewModelDelete(nil)
+	m.SetSqlHandler(testSqlHandler)
+	m.Where().In("user_id", userIds)
+	sqlInfo, args, err := m.GetSql()
 	if err != nil {
 		panic(err.Error())
 		return
