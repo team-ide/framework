@@ -173,6 +173,9 @@ type ModelInfo struct {
 type ModelField struct {
 	*util.StructField
 
+	// 是否 实现了 sql.Scanner 接口
+	ImplementsSqlScanner bool
+
 	ColumnName string
 
 	sqlValueType reflect.Type

@@ -52,9 +52,6 @@ type StructField struct {
 
 	ElemType reflect.Type
 
-	// 是否 实现了 sql.Scanner 接口
-	ImplementsSqlScanner bool
-
 	FieldName string
 
 	IsString bool
@@ -93,6 +90,7 @@ func _loadStructInfo(structType reflect.Type, loadingCache map[reflect.Type]*Str
 		return
 	}
 	info = &StructInfo{}
+	loadingCache[structType] = info
 	info.StructType = structType
 
 	info.FieldMap = map[string]*StructField{}
@@ -116,14 +114,12 @@ func _loadStructInfo(structType reflect.Type, loadingCache map[reflect.Type]*Str
 			structField.ElemType = structField.ElemType.Elem()
 			structField.Kind = structField.ElemType.Kind()
 		}
-
-	}
-	loadingCache[structType] = info
-	for _, field := range info.Fields {
-		if field.IsAnonymous && field.Kind == reflect.Struct {
-			field.AnonymousModel = _loadStructInfo(field.ElemType, loadingCache)
-			for _, subField := range field.AnonymousModel.Fields {
-				subField.ParentFiled = field
+		if structField.IsAnonymous &&
+			structField.Kind == reflect.Struct &&
+			structField.ElemType != structType {
+			structField.AnonymousModel = _loadStructInfo(structField.ElemType, loadingCache)
+			for _, subField := range structField.AnonymousModel.Fields {
+				subField.ParentFiled = structField
 				info.AddField(subField)
 			}
 		}
