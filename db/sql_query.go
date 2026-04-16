@@ -34,6 +34,7 @@ const (
 // Condition 表示一个条件（字段 + 操作符 + 值）
 type Condition struct {
 	WhereSql string
+	Args     []any
 	Field    string
 	Op       Op
 	Value    any
@@ -62,16 +63,18 @@ func (cs *Conditions) Or(field string, op Op, value any) *Conditions {
 	})
 	return cs
 }
-func (cs *Conditions) AndWhereSql(whereSql string) *Conditions {
+func (cs *Conditions) AndWhereSql(whereSql string, args ...any) *Conditions {
 	*cs = append(*cs, &Condition{
 		WhereSql: whereSql,
+		Args:     args,
 	})
 	return cs
 }
-func (cs *Conditions) OrWhereSql(whereSql string) *Conditions {
+func (cs *Conditions) OrWhereSql(whereSql string, args ...any) *Conditions {
 	*cs = append(*cs, &Condition{
 		WhereSql: whereSql,
 		IsOr:     true, // 标记为 OR（但实际拼接时需要看上下文）
+		Args:     args,
 	})
 	return cs
 }
@@ -206,6 +209,7 @@ func (cs *Conditions) buildCriterion(b *OrmSqlBuilder, sb *strings.Builder, c *C
 
 	if c.WhereSql != "" {
 		sb.WriteString(c.WhereSql)
+		*args = append(*args, c.Args...)
 		return
 	}
 

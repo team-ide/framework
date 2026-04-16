@@ -336,11 +336,18 @@ func (this_ *Service) QueryMapPage(ctx context.Context, sqlInfo string, args []a
 	return
 }
 
-func (this_ *Service) ModelSelect(model any) (res *ModelSelect) {
+type ModelSelectSet = func(in *ModelSelect)
+
+func (this_ *Service) ModelSelect(model any, sets ...ModelSelectSet) (res *ModelSelect) {
 	res = &ModelSelect{}
 	res.ModelSetting = &ModelSetting{}
 	res.model = model
 	res.service = this_
+	for _, set := range sets {
+		if set != nil {
+			set(res)
+		}
+	}
 	return
 }
 
@@ -431,16 +438,23 @@ func DoQueryPageWithSql[S any](ctx context.Context, service IService, sqlInfo st
 	return
 }
 
-func (this_ *Service) Count(ctx context.Context, model IModel) (res int64, err error) {
+type ModelCountSet = func(in *ModelCount)
+
+func (this_ *Service) Count(ctx context.Context, model IModel, sets ...ModelCountSet) (res int64, err error) {
 	m := this_.ModelCount(model)
 	res, err = m.Count(ctx)
 	return
 }
-func (this_ *Service) ModelCount(model any) (res *ModelCount) {
+func (this_ *Service) ModelCount(model any, sets ...ModelCountSet) (res *ModelCount) {
 	res = &ModelCount{}
 	res.ModelSetting = &ModelSetting{}
 	res.model = model
 	res.service = this_
+	for _, set := range sets {
+		if set != nil {
+			set(res)
+		}
+	}
 	return
 }
 func (this_ *ModelCount) Count(ctx context.Context) (res int64, err error) {
@@ -458,11 +472,19 @@ func (this_ *ModelCount) Count(ctx context.Context) (res int64, err error) {
 	res, err = this_.service.QueryCount(ctx, sqlInfo, args)
 	return
 }
-func (this_ *Service) SqlCount(table string) (res *SqlCount) {
+
+type SqlCountSet = func(in *SqlCount)
+
+func (this_ *Service) SqlCount(table string, sets ...SqlCountSet) (res *SqlCount) {
 	res = &SqlCount{}
 	res.ModelSetting = &ModelSetting{}
 	res.SetTableName(table)
 	res.service = this_
+	for _, set := range sets {
+		if set != nil {
+			set(res)
+		}
+	}
 	return
 }
 func (this_ *SqlCount) Count(ctx context.Context) (res int64, err error) {
@@ -481,16 +503,23 @@ func (this_ *SqlCount) Count(ctx context.Context) (res int64, err error) {
 	return
 }
 
-func (this_ *Service) Insert(ctx context.Context, model IModel) (res sql.Result, err error) {
-	m := this_.ModelInsert(model)
+type ModelInsertSet = func(in *ModelInsert)
+
+func (this_ *Service) Insert(ctx context.Context, model IModel, sets ...ModelInsertSet) (res sql.Result, err error) {
+	m := this_.ModelInsert(model, sets...)
 	res, err = m.Exec(ctx)
 	return
 }
-func (this_ *Service) ModelInsert(model any) (res *ModelInsert) {
+func (this_ *Service) ModelInsert(model any, sets ...ModelInsertSet) (res *ModelInsert) {
 	res = &ModelInsert{}
 	res.ModelSetting = &ModelSetting{}
 	res.model = model
 	res.service = this_
+	for _, set := range sets {
+		if set != nil {
+			set(res)
+		}
+	}
 	return
 }
 func (this_ *ModelInsert) Exec(ctx context.Context) (res sql.Result, err error) {
@@ -508,11 +537,19 @@ func (this_ *ModelInsert) Exec(ctx context.Context) (res sql.Result, err error) 
 	res, err = this_.service.Exec(ctx, sqlInfo, args)
 	return
 }
-func (this_ *Service) SqlInsert(table string) (res *SqlInsert) {
+
+type SqlInsertSet = func(in *SqlInsert)
+
+func (this_ *Service) SqlInsert(table string, sets ...SqlInsertSet) (res *SqlInsert) {
 	res = &SqlInsert{}
 	res.ModelSetting = &ModelSetting{}
 	res.SetTableName(table)
 	res.service = this_
+	for _, set := range sets {
+		if set != nil {
+			set(res)
+		}
+	}
 	return
 }
 func (this_ *SqlInsert) Exec(ctx context.Context) (res sql.Result, err error) {
@@ -531,10 +568,12 @@ func (this_ *SqlInsert) Exec(ctx context.Context) (res sql.Result, err error) {
 	return
 }
 
-func (this_ *Service) Update(ctx context.Context, model IModel) (res sql.Result, err error) {
+type ModelUpdateSet = func(in *ModelUpdate)
+
+func (this_ *Service) Update(ctx context.Context, model IModel, sets ...ModelUpdateSet) (res sql.Result, err error) {
 	keys := model.GetPrimaryKey()
-	m := this_.ModelUpdate(model)
-	m.ExcludeColumn(keys...)
+	m := this_.ModelUpdate(model, sets...)
+	m.ValueExclude(keys...)
 	where := m.Where()
 	b := m.NewBuilder(model)
 	for _, key := range keys {
@@ -549,11 +588,16 @@ func (this_ *Service) Update(ctx context.Context, model IModel) (res sql.Result,
 	res, err = m.Exec(ctx)
 	return
 }
-func (this_ *Service) ModelUpdate(model any) (res *ModelUpdate) {
+func (this_ *Service) ModelUpdate(model any, sets ...ModelUpdateSet) (res *ModelUpdate) {
 	res = &ModelUpdate{}
 	res.ModelSetting = &ModelSetting{}
 	res.model = model
 	res.service = this_
+	for _, set := range sets {
+		if set != nil {
+			set(res)
+		}
+	}
 	return
 }
 func (this_ *ModelUpdate) Exec(ctx context.Context) (res sql.Result, err error) {
@@ -571,11 +615,19 @@ func (this_ *ModelUpdate) Exec(ctx context.Context) (res sql.Result, err error) 
 	res, err = this_.service.Exec(ctx, sqlInfo, args)
 	return
 }
-func (this_ *Service) SqlUpdate(table string) (res *SqlUpdate) {
+
+type SqlUpdateSet = func(in *SqlUpdate)
+
+func (this_ *Service) SqlUpdate(table string, sets ...SqlUpdateSet) (res *SqlUpdate) {
 	res = &SqlUpdate{}
 	res.ModelSetting = &ModelSetting{}
 	res.SetTableName(table)
 	res.service = this_
+	for _, set := range sets {
+		if set != nil {
+			set(res)
+		}
+	}
 	return
 }
 func (this_ *SqlUpdate) Exec(ctx context.Context) (res sql.Result, err error) {
@@ -594,17 +646,24 @@ func (this_ *SqlUpdate) Exec(ctx context.Context) (res sql.Result, err error) {
 	return
 }
 
-func (this_ *Service) Delete(ctx context.Context, model IModel) (res sql.Result, err error) {
-	m := this_.ModelDelete(model)
+type ModelDeleteSet = func(in *ModelDelete)
+
+func (this_ *Service) Delete(ctx context.Context, model IModel, sets ...ModelDeleteSet) (res sql.Result, err error) {
+	m := this_.ModelDelete(model, sets...)
 	res, err = m.Exec(ctx)
 	return
 }
 
-func (this_ *Service) ModelDelete(model any) (res *ModelDelete) {
+func (this_ *Service) ModelDelete(model any, sets ...ModelDeleteSet) (res *ModelDelete) {
 	res = &ModelDelete{}
 	res.ModelSetting = &ModelSetting{}
 	res.model = model
 	res.service = this_
+	for _, set := range sets {
+		if set != nil {
+			set(res)
+		}
+	}
 	return
 }
 func (this_ *ModelDelete) Exec(ctx context.Context) (res sql.Result, err error) {
@@ -623,11 +682,18 @@ func (this_ *ModelDelete) Exec(ctx context.Context) (res sql.Result, err error) 
 	return
 }
 
-func (this_ *Service) SqlDelete(table string) (res *SqlDelete) {
+type SqlDeleteSet = func(in *SqlDelete)
+
+func (this_ *Service) SqlDelete(table string, sets ...SqlDeleteSet) (res *SqlDelete) {
 	res = &SqlDelete{}
 	res.ModelSetting = &ModelSetting{}
 	res.SetTableName(table)
 	res.service = this_
+	for _, set := range sets {
+		if set != nil {
+			set(res)
+		}
+	}
 	return
 }
 func (this_ *SqlDelete) Exec(ctx context.Context) (res sql.Result, err error) {

@@ -42,24 +42,24 @@ type IService interface {
 	// QueryMapPage 分页查询 列表 map 列表 SQL  返回 list < map >
 	QueryMapPage(ctx context.Context, sql string, args []any, pageSize int64, pageNo int64) (list []map[string]any, err error)
 
-	ModelSelect(model any) (res *ModelSelect)
+	ModelSelect(model any, sets ...ModelSelectSet) (res *ModelSelect)
 	SqlSelect(table string, columns ...string) (res *SqlSelect)
 
-	Count(ctx context.Context, model IModel) (res int64, err error)
-	ModelCount(model any) (res *ModelCount)
-	SqlCount(table string) (res *SqlCount)
+	Count(ctx context.Context, model IModel, sets ...ModelCountSet) (res int64, err error)
+	ModelCount(model any, sets ...ModelCountSet) (res *ModelCount)
+	SqlCount(table string, sets ...SqlCountSet) (res *SqlCount)
 
-	Insert(ctx context.Context, model IModel) (res sql.Result, err error)
-	ModelInsert(model any) (res *ModelInsert)
-	SqlInsert(table string) (res *SqlInsert)
+	Insert(ctx context.Context, model IModel, sets ...ModelInsertSet) (res sql.Result, err error)
+	ModelInsert(model any, sets ...ModelInsertSet) (res *ModelInsert)
+	SqlInsert(table string, sets ...SqlInsertSet) (res *SqlInsert)
 
-	Update(ctx context.Context, model IModel) (res sql.Result, err error)
-	ModelUpdate(model any) (res *ModelUpdate)
-	SqlUpdate(table string) (res *SqlUpdate)
+	Update(ctx context.Context, model IModel, sets ...ModelUpdateSet) (res sql.Result, err error)
+	ModelUpdate(model any, sets ...ModelUpdateSet) (res *ModelUpdate)
+	SqlUpdate(table string, sets ...SqlUpdateSet) (res *SqlUpdate)
 
-	Delete(ctx context.Context, model IModel) (res sql.Result, err error)
-	ModelDelete(model any) (res *ModelDelete)
-	SqlDelete(table string) (res *SqlDelete)
+	Delete(ctx context.Context, model IModel, sets ...ModelDeleteSet) (res sql.Result, err error)
+	ModelDelete(model any, sets ...ModelDeleteSet) (res *ModelDelete)
+	SqlDelete(table string, sets ...SqlDeleteSet) (res *SqlDelete)
 }
 
 type IDynamicService interface {

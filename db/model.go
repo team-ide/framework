@@ -21,14 +21,14 @@ type ModelSelect struct {
 	where *Conditions
 
 	// 查询时候 必须 设置条件 除非 设置 SelectAll
-	selectAll bool
+	canSelectAll bool
 	// 模型 设置 如：表名、主键、包含字段、忽略字段、空值设置 等
 	*ModelSetting
 }
 
-// SelectAll 查询时候 必须 设置条件 除非 设置 SelectAll
-func (this_ *ModelSelect) SelectAll() *ModelSelect {
-	this_.selectAll = true
+// CanSelectAll 查询时候 必须 设置条件 除非 设置 CanSelectAll
+func (this_ *ModelSelect) CanSelectAll() *ModelSelect {
+	this_.canSelectAll = true
 	return this_
 }
 func (this_ *ModelSelect) Where() *Conditions {
@@ -50,13 +50,13 @@ func (this_ *ModelSelect) GetSql() (sqlInfo string, args []any, err error) {
 		return
 	}
 	var columns []string
-	var includeColumns = this_.includeColumns
+	var includeColumns = this_.selectIncludeColumns
 	// 如果 有 包含的字段 则只查询 包含的字段
 	if len(includeColumns) > 0 {
 		if b.model != nil {
 			modelColumns := b.GetColumns(b.modelValue)
 			for _, column := range modelColumns {
-				if this_.IsIncludeColumn(column) {
+				if this_.IsSelectInclude(column) {
 					columns = append(columns, column)
 				}
 			}
@@ -64,13 +64,13 @@ func (this_ *ModelSelect) GetSql() (sqlInfo string, args []any, err error) {
 			columns = append(columns, includeColumns...)
 		}
 	} else {
-		var excludeColumns = this_.excludeColumns
+		var excludeColumns = this_.selectExcludeColumns
 		// 如果 有 排除的字段 则只查询 未排除的字段
 		if len(excludeColumns) > 0 {
 			if b.model != nil {
 				modelColumns := b.GetColumns(b.modelValue)
 				for _, column := range modelColumns {
-					if !this_.IsExcludeColumn(column) {
+					if !this_.IsSelectExclude(column) {
 						columns = append(columns, column)
 					}
 				}
@@ -99,16 +99,17 @@ func (this_ *ModelSelect) GetSql() (sqlInfo string, args []any, err error) {
 
 	whereSql, whereArgs := this_.GetModelAndWhereSql(b, this_.model, this_.where)
 	if len(whereSql) == 0 {
-		if !this_.selectAll {
-			err = errors.New("select sql 必须设置条件 或者 调下 SelectAll()")
+		if !this_.canSelectAll {
+			err = errors.New("select sql 必须设置条件 或者 调下 CanSelectAll()")
 			return
 		}
-		return
-	}
-	if whereSql != "" {
+	} else {
 		sqlInfo += " WHERE " + whereSql
 		args = append(args, whereArgs...)
 	}
+	appendSql, appendArgs := this_.GetAppendSql()
+	sqlInfo += " " + appendSql
+	args = append(args, appendArgs...)
 	return
 }
 func NewModelCount(model any) (res *ModelCount) {
@@ -154,6 +155,9 @@ func (this_ *ModelCount) GetSql() (sqlInfo string, args []any, err error) {
 		sqlInfo += " WHERE " + whereSql
 		args = append(args, whereArgs...)
 	}
+	appendSql, appendArgs := this_.GetAppendSql()
+	sqlInfo += " " + appendSql
+	args = append(args, appendArgs...)
 	return
 }
 
@@ -191,7 +195,7 @@ func (this_ *ModelInsert) GetSql() (sqlInfo string, args []any, err error) {
 	for i, column := range columns {
 		isPrimaryKey := b.IsPrimaryKey(column)
 		if !isPrimaryKey {
-			if !this_.Included(column, values[i]) {
+			if !this_.Included(IncludedPlaceValue, column, values[i]) {
 				continue
 			}
 		}
@@ -238,14 +242,14 @@ type ModelUpdate struct {
 	where *Conditions
 
 	// 更新时候 必须 设置条件 除非 设置 UpdateAll
-	updateAll bool
+	canUpdateAll bool
 	// 模型 设置 如：表名、主键、包含字段、忽略字段、空值设置 等
 	*ModelSetting
 }
 
-// UpdateAll 更新时候 必须 设置条件 除非 设置 UpdateAll
-func (this_ *ModelUpdate) UpdateAll() *ModelUpdate {
-	this_.updateAll = true
+// CanUpdateAll 更新时候 必须 设置条件 除非 设置 CanUpdateAll
+func (this_ *ModelUpdate) CanUpdateAll() *ModelUpdate {
+	this_.canUpdateAll = true
 	return this_
 }
 func (this_ *ModelUpdate) Where() *Conditions {
@@ -277,7 +281,7 @@ func (this_ *ModelUpdate) GetSql() (sqlInfo string, args []any, err error) {
 	var wrapColumns []string
 	var wrapValues []*util.FieldValue
 	for i, column := range columns {
-		if !this_.Included(column, values[i]) {
+		if !this_.Included(IncludedPlaceValue, column, values[i]) {
 			continue
 		}
 		wrapColumn := b.WrapColumnName(b.sqlParam, column)
@@ -310,15 +314,17 @@ func (this_ *ModelUpdate) GetSql() (sqlInfo string, args []any, err error) {
 		whereSql, whereArgs = where.Build(b, this_.service)
 	}
 	if len(whereSql) == 0 {
-		if !this_.updateAll {
+		if !this_.canUpdateAll {
 			err = errors.New("update sql 必须设置条件 或者 调下 UpdateAll()")
 			return
 		}
-	}
-	if len(whereSql) > 0 {
+	} else {
 		sqlInfo += " WHERE " + whereSql
 		args = append(args, whereArgs...)
 	}
+	appendSql, appendArgs := this_.GetAppendSql()
+	sqlInfo += " " + appendSql
+	args = append(args, appendArgs...)
 	return
 }
 
@@ -336,14 +342,14 @@ type ModelDelete struct {
 	where *Conditions
 
 	// 删除时候 必须 设置条件 除非 设置 DeleteAll
-	deleteAll bool
+	canDeleteAll bool
 	// 模型 设置 如：表名、主键、包含字段、忽略字段、空值设置 等
 	*ModelSetting
 }
 
-// DeleteAll 删除时候 必须 设置条件 除非 设置 DeleteAll
-func (this_ *ModelDelete) DeleteAll() *ModelDelete {
-	this_.deleteAll = true
+// CanDeleteAll 删除时候 必须 设置条件 除非 设置 CanDeleteAll
+func (this_ *ModelDelete) CanDeleteAll() *ModelDelete {
+	this_.canDeleteAll = true
 	return this_
 }
 func (this_ *ModelDelete) Where() *Conditions {
@@ -369,14 +375,18 @@ func (this_ *ModelDelete) GetSql() (sqlInfo string, args []any, err error) {
 
 	whereSql, whereArgs := this_.GetModelAndWhereSql(b, this_.model, this_.where)
 	if len(whereSql) == 0 {
-		if !this_.deleteAll {
+		if !this_.canDeleteAll {
 			err = errors.New("delete sql 必须设置条件 或者 调下 DeleteAll()")
 			return
 		}
-		return
+	} else {
+		sqlInfo += " WHERE " + whereSql
+		args = append(args, whereArgs...)
 	}
-	sqlInfo += " WHERE " + whereSql
-	args = append(args, whereArgs...)
+
+	appendSql, appendArgs := this_.GetAppendSql()
+	sqlInfo += " " + appendSql
+	args = append(args, appendArgs...)
 	return
 }
 
@@ -387,7 +397,7 @@ func (this_ *ModelSetting) GetModelAndWhereSql(b *OrmSqlBuilder, model any, wher
 		columns, values := b.GetColumnValues(b.modelValue)
 		for i, column := range columns {
 			// 作为 条件 不取根据字段名称过滤  只根据值过滤
-			if !this_.Included("", values[i]) {
+			if !this_.Included(IncludedPlaceWhere, "", values[i]) {
 				continue
 			}
 			wrapColumn := b.WrapColumnName(b.sqlParam, column)
@@ -449,13 +459,26 @@ type ModelSetting struct {
 	// 是否 包含 空，默认 忽略 null 值
 	includeNull bool
 
-	// 包含的字段 如果设置了 则只允许包含这些字段，如果没设置 则走其它包含流程
-	includeColumns    []string
-	includeColumnsStr string
+	// 查询 包含的字段 指的是 查询 字段
+	selectIncludeColumns   []string
+	selectIncludeColumnStr string
+	// 查询 排除的字段 指的是 查询 字段
+	selectExcludeColumns   []string
+	selectExcludeColumnStr string
 
-	// 排除的字段 如果设置了 则排除这些字段
-	excludeColumns    []string
-	excludeColumnsStr string
+	// 值 包含的字段 指的是 新增、更新 字段
+	valueIncludeColumns   []string
+	valueIncludeColumnStr string
+	// 值 排除的字段 指的是 新增、更新 字段
+	valueExcludeColumns   []string
+	valueExcludeColumnStr string
+
+	// 条件 包含的字段 指的是 条件 字段
+	whereIncludeColumns   []string
+	whereIncludeColumnStr string
+	// 条件 排除的字段 指的是 条件 字段
+	whereExcludeColumns   []string
+	whereExcludeColumnStr string
 
 	whereOperators []*WhereOperator
 
@@ -469,6 +492,9 @@ type ModelSetting struct {
 	sqlHandler SqlHandler
 
 	modelOption *ModelOption
+
+	appendSql  []string
+	appendArgs []any
 }
 
 type IModel interface {
@@ -483,6 +509,18 @@ type IGetPrimaryKey interface {
 	GetPrimaryKey() []string
 }
 
+func (this_ *ModelSetting) GetAppendSql() (appendSql string, appendArgs []any) {
+	appendSql = strings.Join(this_.appendSql, " ")
+	appendArgs = this_.appendArgs
+	return
+}
+func (this_ *ModelSetting) AppendSql(appendSql string, appendArgs ...any) *ModelSetting {
+	if appendSql != "" {
+		this_.appendSql = append(this_.appendSql, appendSql)
+	}
+	this_.appendArgs = append(this_.appendArgs, appendArgs...)
+	return this_
+}
 func (this_ *ModelSetting) SetTableName(tableName string) *ModelSetting {
 	this_.tableName = tableName
 	return this_
@@ -549,49 +587,114 @@ func (this_ *ModelSetting) EmptyUseNull() *ModelSetting {
 	return this_
 }
 
-func (this_ *ModelSetting) EmptyIncludeColumn() *ModelSetting {
-	this_.includeColumns = []string{}
-	this_.includeColumnsStr = "," + strings.ToLower(strings.Join(this_.includeColumns, ",")) + ","
+func (this_ *ModelSetting) columnsEmpty(columns *[]string, columnStr *string) *ModelSetting {
+	*columns = []string{}
+	*columnStr = ""
 	return this_
 }
-func (this_ *ModelSetting) IncludeColumn(columns ...string) *ModelSetting {
-	this_.includeColumns = append(this_.includeColumns, columns...)
-	this_.includeColumnsStr = "," + strings.ToLower(strings.Join(this_.includeColumns, ",")) + ","
+func (this_ *ModelSetting) columnsAdd(columns *[]string, columnStr *string, adds ...string) *ModelSetting {
+	*columns = append(*columns, adds...)
+	*columnStr = "," + strings.ToLower(strings.Join(*columns, ",")) + ","
 	return this_
 }
-func (this_ *ModelSetting) IsIncludeColumn(column string) bool {
-	return strings.Contains(this_.includeColumnsStr, ","+strings.ToLower(column)+",")
+func (this_ *ModelSetting) columnsFind(columnStr string, find string) bool {
+	return strings.Contains(columnStr, ","+strings.ToLower(find)+",")
 }
 
-func (this_ *ModelSetting) EmptyExcludeColumn() *ModelSetting {
-	this_.excludeColumns = []string{}
-	this_.excludeColumnsStr = "," + strings.ToLower(strings.Join(this_.excludeColumns, ",")) + ","
-	return this_
+func (this_ *ModelSetting) EmptySelectInclude() *ModelSetting {
+	return this_.columnsEmpty(&this_.selectIncludeColumns, &this_.selectIncludeColumnStr)
 }
-func (this_ *ModelSetting) ExcludeColumn(columns ...string) *ModelSetting {
-	this_.excludeColumns = append(this_.excludeColumns, columns...)
-	this_.excludeColumnsStr = "," + strings.ToLower(strings.Join(this_.excludeColumns, ",")) + ","
-	return this_
+func (this_ *ModelSetting) SelectInclude(columns ...string) *ModelSetting {
+	return this_.columnsAdd(&this_.selectIncludeColumns, &this_.selectIncludeColumnStr, columns...)
 }
-func (this_ *ModelSetting) IsExcludeColumn(column string) bool {
-	return strings.Contains(this_.excludeColumnsStr, ","+strings.ToLower(column)+",")
+func (this_ *ModelSetting) IsSelectInclude(column string) bool {
+	return this_.columnsFind(this_.selectIncludeColumnStr, column)
+}
+func (this_ *ModelSetting) EmptySelectExclude() *ModelSetting {
+	return this_.columnsEmpty(&this_.selectExcludeColumns, &this_.selectExcludeColumnStr)
+}
+func (this_ *ModelSetting) SelectExclude(columns ...string) *ModelSetting {
+	return this_.columnsAdd(&this_.selectExcludeColumns, &this_.selectExcludeColumnStr, columns...)
+}
+func (this_ *ModelSetting) IsSelectExclude(column string) bool {
+	return this_.columnsFind(this_.selectExcludeColumnStr, column)
 }
 
-func (this_ *ModelSetting) Included(columnName string, columnValue *util.FieldValue) bool {
+func (this_ *ModelSetting) EmptyValueInclude() *ModelSetting {
+	return this_.columnsEmpty(&this_.valueIncludeColumns, &this_.valueIncludeColumnStr)
+}
+func (this_ *ModelSetting) ValueInclude(columns ...string) *ModelSetting {
+	return this_.columnsAdd(&this_.valueIncludeColumns, &this_.valueIncludeColumnStr, columns...)
+}
+func (this_ *ModelSetting) IsValueInclude(column string) bool {
+	return this_.columnsFind(this_.valueIncludeColumnStr, column)
+}
+func (this_ *ModelSetting) EmptyValueExclude() *ModelSetting {
+	return this_.columnsEmpty(&this_.valueExcludeColumns, &this_.valueExcludeColumnStr)
+}
+func (this_ *ModelSetting) ValueExclude(columns ...string) *ModelSetting {
+	return this_.columnsAdd(&this_.valueExcludeColumns, &this_.valueExcludeColumnStr, columns...)
+}
+func (this_ *ModelSetting) IsValueExclude(column string) bool {
+	return this_.columnsFind(this_.valueExcludeColumnStr, column)
+}
+
+func (this_ *ModelSetting) EmptyWhereInclude() *ModelSetting {
+	return this_.columnsEmpty(&this_.whereIncludeColumns, &this_.whereIncludeColumnStr)
+}
+func (this_ *ModelSetting) WhereInclude(columns ...string) *ModelSetting {
+	return this_.columnsAdd(&this_.whereIncludeColumns, &this_.whereIncludeColumnStr, columns...)
+}
+func (this_ *ModelSetting) IsWhereInclude(column string) bool {
+	return this_.columnsFind(this_.whereIncludeColumnStr, column)
+}
+func (this_ *ModelSetting) EmptyWhereExclude() *ModelSetting {
+	return this_.columnsEmpty(&this_.whereExcludeColumns, &this_.whereExcludeColumnStr)
+}
+func (this_ *ModelSetting) WhereExclude(columns ...string) *ModelSetting {
+	return this_.columnsAdd(&this_.whereExcludeColumns, &this_.whereExcludeColumnStr, columns...)
+}
+func (this_ *ModelSetting) IsWhereExclude(column string) bool {
+	return this_.columnsFind(this_.whereExcludeColumnStr, column)
+}
+
+type IncludedPlace int
+
+var IncludedPlaceValue = IncludedPlace(1)
+var IncludedPlaceWhere = IncludedPlace(2)
+
+func (this_ *ModelSetting) Included(place IncludedPlace, columnName string, columnValue *util.FieldValue) bool {
 	if columnName != "" {
-		if len(this_.excludeColumns) > 0 {
-			// 如果是 排除字段 直接返回 不包含
-			if this_.IsExcludeColumn(columnName) {
+		if place == IncludedPlaceValue {
+			if len(this_.valueExcludeColumns) > 0 {
+				// 如果是 排除字段 直接返回 不包含
+				if this_.IsValueExclude(columnName) {
+					return false
+				}
+			}
+			if len(this_.valueIncludeColumns) > 0 {
+				// 如果是 包含字段 直接返回 包含
+				if this_.IsValueInclude(columnName) {
+					return true
+				}
+				// 如果 配置了包含 则 不在里边的字段 直接 忽略
 				return false
 			}
-		}
-		if len(this_.includeColumns) > 0 {
-			// 如果是 包含字段 直接返回 包含
-			if this_.IsIncludeColumn(columnName) {
-				return true
+		} else if place == IncludedPlaceWhere {
+			if len(this_.whereExcludeColumns) > 0 {
+				// 如果是 排除字段 直接返回 不包含
+				if this_.IsWhereExclude(columnName) {
+					return false
+				}
 			}
-			// 如果 配置了包含 则 不在里边的字段 直接 忽略
-			return false
+			if len(this_.whereIncludeColumns) > 0 {
+				// 如果是 包含字段 直接返回 包含
+				if this_.IsWhereInclude(columnName) {
+					return true
+				}
+				// 如果 配置了包含 则 不在里边的字段 直接 忽略
+				return false
+			}
 		}
 	}
 

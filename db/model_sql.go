@@ -12,14 +12,14 @@ type SqlSelect struct {
 	where *Conditions
 
 	// 查询时候 必须 设置条件 除非 设置 SelectAll
-	selectAll bool
+	canSelectAll bool
 	// 模型 设置 如：表名、主键、包含字段、忽略字段、空值设置 等
 	*ModelSetting
 }
 
-// SelectAll 查询时候 必须 设置条件 除非 设置 SelectAll
-func (this_ *SqlSelect) SelectAll() *SqlSelect {
-	this_.selectAll = true
+// CanSelectAll 查询时候 必须 设置条件 除非 设置 CanSelectAll
+func (this_ *SqlSelect) CanSelectAll() *SqlSelect {
+	this_.canSelectAll = true
 	return this_
 }
 func (this_ *SqlSelect) Where() *Conditions {
@@ -45,12 +45,12 @@ func (this_ *SqlSelect) GetSql() (sqlInfo string, args []any, err error) {
 		return
 	}
 	var columns []string
-	var includeColumns = this_.includeColumns
+	var includeColumns = this_.selectIncludeColumns
 	// 如果 有 包含的字段 则只查询 包含的字段
 	if len(includeColumns) > 0 {
 		if b.model != nil {
 			for _, column := range this_.columns {
-				if this_.IsIncludeColumn(column) {
+				if this_.IsSelectInclude(column) {
 					columns = append(columns, column)
 				}
 			}
@@ -58,12 +58,12 @@ func (this_ *SqlSelect) GetSql() (sqlInfo string, args []any, err error) {
 			columns = append(columns, includeColumns...)
 		}
 	} else {
-		var excludeColumns = this_.excludeColumns
+		var excludeColumns = this_.selectExcludeColumns
 		// 如果 有 排除的字段 则只查询 未排除的字段
 		if len(excludeColumns) > 0 {
 			if b.model != nil {
 				for _, column := range this_.columns {
-					if !this_.IsExcludeColumn(column) {
+					if !this_.IsSelectExclude(column) {
 						columns = append(columns, column)
 					}
 				}
@@ -92,16 +92,18 @@ func (this_ *SqlSelect) GetSql() (sqlInfo string, args []any, err error) {
 
 	whereSql, whereArgs := this_.GetModelAndWhereSql(b, nil, this_.where)
 	if len(whereSql) == 0 {
-		if !this_.selectAll {
+		if !this_.canSelectAll {
 			err = errors.New("select sql 必须设置条件 或者 调下 SelectAll()")
 			return
 		}
 		return
-	}
-	if whereSql != "" {
+	} else {
 		sqlInfo += " WHERE " + whereSql
 		args = append(args, whereArgs...)
 	}
+	appendSql, appendArgs := this_.GetAppendSql()
+	sqlInfo += " " + appendSql
+	args = append(args, appendArgs...)
 	return
 }
 
@@ -139,6 +141,9 @@ func (this_ *SqlCount) GetSql() (sqlInfo string, args []any, err error) {
 		sqlInfo += " WHERE " + whereSql
 		args = append(args, whereArgs...)
 	}
+	appendSql, appendArgs := this_.GetAppendSql()
+	sqlInfo += " " + appendSql
+	args = append(args, appendArgs...)
 	return
 }
 
@@ -182,7 +187,7 @@ func (this_ *SqlInsert) GetSql() (sqlInfo string, args []any, err error) {
 	for i, column := range columns {
 		isPrimaryKey := b.IsPrimaryKey(column)
 		if !isPrimaryKey {
-			if !this_.Included(column, values[i]) {
+			if !this_.Included(IncludedPlaceValue, column, values[i]) {
 				continue
 			}
 		}
@@ -222,14 +227,14 @@ type SqlUpdate struct {
 	where *Conditions
 
 	// 更新时候 必须 设置条件 除非 设置 UpdateAll
-	updateAll bool
+	canUpdateAll bool
 	// 模型 设置 如：表名、主键、包含字段、忽略字段、空值设置 等
 	*ModelSetting
 }
 
-// UpdateAll 更新时候 必须 设置条件 除非 设置 UpdateAll
-func (this_ *SqlUpdate) UpdateAll() *SqlUpdate {
-	this_.updateAll = true
+// CanUpdateAll 更新时候 必须 设置条件 除非 设置 CanUpdateAll
+func (this_ *SqlUpdate) CanUpdateAll() *SqlUpdate {
+	this_.canUpdateAll = true
 	return this_
 }
 func (this_ *SqlUpdate) Where() *Conditions {
@@ -277,7 +282,7 @@ func (this_ *SqlUpdate) GetSql() (sqlInfo string, args []any, err error) {
 	var wrapColumns []string
 	var wrapValues []*util.FieldValue
 	for i, column := range columns {
-		if !this_.Included(column, values[i]) {
+		if !this_.Included(IncludedPlaceValue, column, values[i]) {
 			continue
 		}
 		wrapColumn := b.WrapColumnName(b.sqlParam, column)
@@ -310,15 +315,18 @@ func (this_ *SqlUpdate) GetSql() (sqlInfo string, args []any, err error) {
 		whereSql, whereArgs = where.Build(b, this_.service)
 	}
 	if len(whereSql) == 0 {
-		if !this_.updateAll {
+		if !this_.canUpdateAll {
 			err = errors.New("update sql 必须设置条件 或者 调下 UpdateAll()")
 			return
 		}
-	}
-	if len(whereSql) > 0 {
+	} else {
 		sqlInfo += " WHERE " + whereSql
 		args = append(args, whereArgs...)
 	}
+
+	appendSql, appendArgs := this_.GetAppendSql()
+	sqlInfo += " " + appendSql
+	args = append(args, appendArgs...)
 	return
 }
 
@@ -327,14 +335,14 @@ type SqlDelete struct {
 	where *Conditions
 
 	// 删除时候 必须 设置条件 除非 设置 DeleteAll
-	deleteAll bool
+	canDeleteAll bool
 	// 模型 设置 如：表名、主键、包含字段、忽略字段、空值设置 等
 	*ModelSetting
 }
 
-// DeleteAll 删除时候 必须 设置条件 除非 设置 DeleteAll
-func (this_ *SqlDelete) DeleteAll() *SqlDelete {
-	this_.deleteAll = true
+// CanDeleteAll 删除时候 必须 设置条件 除非 设置 CanDeleteAll
+func (this_ *SqlDelete) CanDeleteAll() *SqlDelete {
+	this_.canDeleteAll = true
 	return this_
 }
 func (this_ *SqlDelete) Where() *Conditions {
@@ -360,13 +368,17 @@ func (this_ *SqlDelete) GetSql() (sqlInfo string, args []any, err error) {
 
 	whereSql, whereArgs := this_.GetModelAndWhereSql(b, nil, this_.where)
 	if len(whereSql) == 0 {
-		if !this_.deleteAll {
+		if !this_.canDeleteAll {
 			err = errors.New("delete sql 必须设置条件 或者 调下 DeleteAll()")
 			return
 		}
 		return
+	} else {
+		sqlInfo += " WHERE " + whereSql
+		args = append(args, whereArgs...)
 	}
-	sqlInfo += " WHERE " + whereSql
-	args = append(args, whereArgs...)
+	appendSql, appendArgs := this_.GetAppendSql()
+	sqlInfo += " " + appendSql
+	args = append(args, appendArgs...)
 	return
 }

@@ -188,7 +188,7 @@ func (this_ *SqlReader) Scan() (res string) {
 	for {
 		this_.ReadState = this_.read()
 		if this_.isEnd {
-			return
+			break
 		}
 		if strings.TrimSpace(this_.str) != "" {
 			break
@@ -227,10 +227,11 @@ func (this_ *SqlReader) read() (res *ReadState) {
 		return
 	}
 	res.str += char
+	var readIsEnd bool
 	if identifierReg.MatchString(char) || char == "$" {
 		for {
-			char, res.isEnd = this_.readChar(res.offset + 1)
-			if res.isEnd {
+			char, readIsEnd = this_.readChar(res.offset + 1)
+			if readIsEnd {
 				break
 			}
 			if identifierReg.MatchString(char) || intReg.MatchString(char) {
@@ -242,8 +243,8 @@ func (this_ *SqlReader) read() (res *ReadState) {
 		}
 	} else if numReg.MatchString(char) || char == "-" {
 		for {
-			char, res.isEnd = this_.readChar(res.offset + 1)
-			if res.isEnd {
+			char, readIsEnd = this_.readChar(res.offset + 1)
+			if readIsEnd {
 				break
 			}
 			if numReg.MatchString(char) || char == "." {
@@ -254,8 +255,8 @@ func (this_ *SqlReader) read() (res *ReadState) {
 			break
 		}
 	} else if char == "=" || char == "!" || char == ">" || char == "<" {
-		char, res.isEnd = this_.readChar(res.offset + 1)
-		if !res.isEnd {
+		char, readIsEnd = this_.readChar(res.offset + 1)
+		if !readIsEnd {
 			if char == "=" {
 				res.offset++
 				res.str += char
@@ -264,8 +265,8 @@ func (this_ *SqlReader) read() (res *ReadState) {
 
 	} else if char == "&" || char == "|" || char == "-" || char == "/" {
 		lC := char
-		char, res.isEnd = this_.readChar(res.offset + 1)
-		if !res.isEnd {
+		char, readIsEnd = this_.readChar(res.offset + 1)
+		if !readIsEnd {
 			if char == lC {
 				res.offset++
 				res.str += char
@@ -273,8 +274,8 @@ func (this_ *SqlReader) read() (res *ReadState) {
 		}
 	} else if IsWhiteSpace(char) {
 		for {
-			char, res.isEnd = this_.readChar(res.offset + 1)
-			if res.isEnd {
+			char, readIsEnd = this_.readChar(res.offset + 1)
+			if readIsEnd {
 				break
 			}
 			if IsWhiteSpace(char) {
