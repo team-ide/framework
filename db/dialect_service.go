@@ -1420,7 +1420,7 @@ func (this_ *DialectService) SqlConcat(args ...string) (res string) {
 				if i > 0 {
 					res += `, `
 				}
-				res += `"` + one + `"`
+				res += `'` + one + `'`
 			}
 			res += ")"
 		}
@@ -1429,7 +1429,7 @@ func (this_ *DialectService) SqlConcat(args ...string) (res string) {
 			if i > 0 {
 				res += ` ` + use + ` `
 			}
-			res += `"` + one + `"`
+			res += `'` + one + `'`
 		}
 	}
 	return

@@ -409,15 +409,23 @@ func (this_ *ModelSetting) GetModelAndWhereSql(b *OrmSqlBuilder, model any, wher
 			if o != nil {
 				switch strings.ToLower(o.Operator) {
 				case "%like%":
-					newWhere.Like(wrapColumn, &SqlConcatValue{
-						Values: []string{"%", "?", "%"},
-						Value:  v,
-					})
+					//newWhere.Like(wrapColumn, &SqlConcatValue{
+					//	Values: []string{"%", "?", "%"},
+					//	Value:  v,
+					//})
+					newWhere.Like(wrapColumn, "%"+GetStringValue(v)+"%")
 				case "%like":
-					newWhere.Like(wrapColumn, &SqlConcatValue{
-						Values: []string{"%", "?"},
-						Value:  v,
-					})
+					//newWhere.Like(wrapColumn, &SqlConcatValue{
+					//	Values: []string{"%", "?"},
+					//	Value:  v,
+					//})
+					newWhere.Like(wrapColumn, "%"+GetStringValue(v))
+				case "like%":
+					//newWhere.Like(wrapColumn, &SqlConcatValue{
+					//	Values: []string{"?", "%"},
+					//	Value:  v,
+					//})
+					newWhere.Like(wrapColumn, GetStringValue(v)+"%")
 				case "like":
 					newWhere.Like(wrapColumn, v)
 				default:

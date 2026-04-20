@@ -55,9 +55,12 @@ func (this_ *ModelOption) SetGetValue(getValue FiledGetValue) *ModelOption {
 func (this_ *ModelOption) GetColumnValues(modelV reflect.Value) (columns []string, values []*util.FieldValue) {
 	modelType := modelV.Type()
 	modelInfo := this_.GetModelInfo(modelType)
-
 	for modelV.Kind() == reflect.Ptr {
-		modelV = modelV.Elem()
+		if modelV.IsNil() {
+			modelV = reflect.New(modelV.Type().Elem()).Elem()
+		} else {
+			modelV = modelV.Elem()
+		}
 	}
 
 	if modelInfo.IsMap {
@@ -103,7 +106,11 @@ func (this_ *ModelOption) GetColumns(modelV reflect.Value) (columns []string) {
 	modelInfo := this_.GetModelInfo(modelType)
 
 	for modelV.Kind() == reflect.Ptr {
-		modelV = modelV.Elem()
+		if modelV.IsNil() {
+			modelV = reflect.New(modelV.Type().Elem()).Elem()
+		} else {
+			modelV = modelV.Elem()
+		}
 	}
 
 	if modelInfo.IsMap {
