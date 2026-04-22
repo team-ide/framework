@@ -67,3 +67,16 @@ type IService interface {
 
 type Info struct {
 }
+
+type Request struct {
+	*http.Request
+}
+
+func (this_ *Request) SetHeader(name, value string) *Request {
+	this_.Request.Header.Set(name, value)
+	return this_
+}
+
+type Response struct {
+	*http.Response
+}

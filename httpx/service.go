@@ -57,7 +57,7 @@ func (this_ *Service) init(connProxy ConnProxy) (err error) {
 	return
 }
 
-type Set func(in *http.Request)
+type Set func(in *Request)
 
 func (this_ *Service) GetUrl(path string) (res string) {
 	res = this_.RootUrl + path
@@ -74,8 +74,10 @@ func (this_ *Service) Request(method, path string, body io.Reader, sets ...Set) 
 		err = errors.New("http [" + this_.RootUrl + "] service NewRequest error:" + err.Error())
 		return
 	}
+	request := &Request{}
+	request.Request = req
 	for _, set := range sets {
-		set(req)
+		set(request)
 	}
 	resp, err = this_.httpClient.Do(req)
 	if err != nil {
