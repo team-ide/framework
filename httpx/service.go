@@ -1,8 +1,10 @@
 package httpx
 
 import (
+	"bytes"
 	"crypto/tls"
 	"errors"
+	"fmt"
 	"github.com/team-ide/framework/util"
 	"io"
 	"net/http"
@@ -58,7 +60,7 @@ func (this_ *Service) init(connProxy ConnProxy) (err error) {
 type Set func(in *http.Request)
 
 func (this_ *Service) GetUrl(path string) (res string) {
-	res = util.PathJoin(this_.RootUrl, path)
+	res = this_.RootUrl + path
 	return
 }
 func (this_ *Service) Request(method, path string, body io.Reader, sets ...Set) (resp *http.Response, err error) {
@@ -95,37 +97,54 @@ func (this_ *Service) PostRequest(path string, body io.Reader, sets ...Set) (res
 	}
 	return
 }
-func (this_ *Service) Get(path string, sets ...Set) (res string, err error) {
+func (this_ *Service) Get(path string, sets ...Set) (res []byte, err error) {
 	resp, err := this_.GetRequest(path, sets...)
 	if err != nil {
 		return
 	}
-	if resp.Body == nil {
-		return
-	}
-	defer func() { _ = resp.Body.Close() }()
-	bs, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return
-	}
-	res = string(bs)
+	res, err = this_.ReadResponse(resp)
 	return
 }
 
-func (this_ *Service) Post(path string, body io.Reader, sets ...Set) (res string, err error) {
+func (this_ *Service) Post(path string, data any, sets ...Set) (res []byte, err error) {
+	body, err := this_.DataReader(data)
+	if err != nil {
+		return
+	}
 	resp, err := this_.PostRequest(path, body, sets...)
 	if err != nil {
 		return
 	}
+	res, err = this_.ReadResponse(resp)
+	return
+}
+
+func (this_ *Service) DataReader(data any) (res io.Reader, err error) {
+	if data == nil {
+		return
+	}
+	var bs []byte
+	bs, err = util.ObjToJsonBytes(data)
+	if err != nil {
+		err = errors.New("data reader data to json bytes error:" + err.Error())
+		return
+	}
+	res = bytes.NewReader(bs)
+	return
+}
+func (this_ *Service) ReadResponse(resp *http.Response) (res []byte, err error) {
+	if resp.StatusCode != http.StatusOK {
+		err = errors.New(resp.Status)
+		return
+	}
 	if resp.Body == nil {
 		return
 	}
 	defer func() { _ = resp.Body.Close() }()
-	bs, err := io.ReadAll(resp.Body)
+	res, err = io.ReadAll(resp.Body)
 	if err != nil {
 		return
 	}
-	res = string(bs)
 	return
 }
 
@@ -147,4 +166,50 @@ func (this_ *Service) Close() {
 	if client != nil {
 		client.CloseIdleConnections()
 	}
+}
+func HttpGet[T any](ser IService, path string, sets ...Set) (res T, body []byte, err error) {
+	body, err = ser.Get(path, sets...)
+	if err != nil {
+		return
+	}
+	res, err = HttpJsonToObj[T](body)
+	return
+}
+func HttpPost[T any](ser IService, path string, in any, sets ...Set) (res T, body []byte, err error) {
+	body, err = ser.Post(path, in, sets...)
+	if err != nil {
+		return
+	}
+	res, err = HttpJsonToObj[T](body)
+	fmt.Println("body:" + string(body))
+	return
+}
+
+type DataResponse[T any] struct {
+	Code string `json:"code"`
+	Msg  string `json:"msg"`
+	Data T      `json:"data"`
+}
+
+func HttpPostDataResponse[T any](ser IService, path string, in any, sets ...Set) (res *DataResponse[T], body []byte, err error) {
+	body, err = ser.Post(path, in, sets...)
+	if err != nil {
+		return
+	}
+	res, err = HttpJsonToObj[*DataResponse[T]](body)
+	fmt.Println("body:" + string(body))
+	return
+}
+
+func HttpJsonToObj[T any](bs []byte) (res T, err error) {
+	// 创建新的实例并反序列化
+	var result T
+	// res 是指针，直接反序列化到指针
+	err = util.JsonBytesToObj(bs, &result)
+	if err != nil {
+		err = fmt.Errorf("json unmarshal error: %w", err)
+		return
+	}
+	res = result
+	return
 }

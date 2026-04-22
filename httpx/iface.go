@@ -61,8 +61,8 @@ type IService interface {
 	Request(method, path string, body io.Reader, sets ...Set) (resp *http.Response, err error)
 	GetRequest(path string, sets ...Set) (resp *http.Response, err error)
 	PostRequest(path string, body io.Reader, sets ...Set) (resp *http.Response, err error)
-	Get(path string, sets ...Set) (res string, err error)
-	Post(path string, body io.Reader, sets ...Set) (res string, err error)
+	Get(path string, sets ...Set) (res []byte, err error)
+	Post(path string, data any, sets ...Set) (res []byte, err error)
 }
 
 type Info struct {
