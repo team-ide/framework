@@ -335,6 +335,10 @@ func (this_ *WebServer) init() (err error) {
 func (this_ *WebServer) initFilters() (err error) {
 	list := GetWebFilterList(this_.name)
 	list = append(list, this_.webFilters...)
+	webApis := GetWebApiList(this_.name)
+	for _, one := range webApis {
+		list = append(list, one.filters...)
+	}
 
 	// Order 正序 排序
 	sort.Slice(list, func(i, j int) bool {
@@ -362,6 +366,10 @@ func (this_ *WebServer) initFilters() (err error) {
 func (this_ *WebServer) initInterceptors() (err error) {
 	list := GetWebInterceptorList(this_.name)
 	list = append(list, this_.webInterceptors...)
+	webApis := GetWebApiList(this_.name)
+	for _, one := range webApis {
+		list = append(list, one.interceptors...)
+	}
 
 	// Order 正序 排序
 	sort.Slice(list, func(i, j int) bool {
@@ -389,6 +397,10 @@ func (this_ *WebServer) initInterceptors() (err error) {
 func (this_ *WebServer) initApiRouters() (err error) {
 	list := GetWebApiRouterList(this_.name)
 	list = append(list, this_.webApiRouters...)
+	webApis := GetWebApiList(this_.name)
+	for _, one := range webApis {
+		list = append(list, one.routers...)
+	}
 
 	for _, one := range list {
 		this_.addApiRouter(one)
@@ -624,10 +636,32 @@ func NewWebApi(path string) *WebApi {
 	return res
 }
 
+var (
+	webApiList = map[string][]*WebApi{}
+)
+
+func AppendWebApi(webName string, webApi *WebApi) {
+	webApiList[webName] = append(webApiList[webName], webApi)
+}
+func GetWebApiList(webName string) []*WebApi {
+	return webApiList[webName]
+}
+
 type WebApi struct {
-	Path    string // 路由
-	Method  string // HTTP 方法 GET、POST 等
-	routers []*WebApiRouter
+	Path         string // 路由
+	Method       string // HTTP 方法 GET、POST 等
+	routers      []*WebApiRouter
+	interceptors []WebInterceptor
+	filters      []WebFilter
+}
+
+func (this_ *WebApi) AddInterceptor(interceptor WebInterceptor) *WebApi {
+	this_.interceptors = append(this_.interceptors, interceptor)
+	return this_
+}
+func (this_ *WebApi) AddFilter(filter WebFilter) *WebApi {
+	this_.filters = append(this_.filters, filter)
+	return this_
 }
 
 func (this_ *WebApi) SetMethod(method string) *WebApi {
