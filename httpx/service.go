@@ -8,6 +8,8 @@ import (
 	"github.com/team-ide/framework/util"
 	"io"
 	"net/http"
+	"net/url"
+	"strings"
 	"time"
 )
 
@@ -63,12 +65,11 @@ func (this_ *Service) GetUrl(path string) (res string) {
 	res = this_.RootUrl + path
 	return
 }
-func (this_ *Service) Request(method, path string, body io.Reader, sets ...Set) (resp *http.Response, err error) {
+func (this_ *Service) Request(method, url string, body io.Reader, sets ...Set) (resp *http.Response, err error) {
 	if this_.isClosed {
 		err = errors.New("http [" + this_.RootUrl + "] service is closed")
 		return
 	}
-	url := this_.GetUrl(path)
 	req, err := http.NewRequest(method, url, body)
 	if err != nil {
 		err = errors.New("http [" + this_.RootUrl + "] service NewRequest error:" + err.Error())
@@ -85,39 +86,41 @@ func (this_ *Service) Request(method, path string, body io.Reader, sets ...Set) 
 	}
 	return
 }
-func (this_ *Service) GetRequest(path string, sets ...Set) (resp *http.Response, err error) {
-	resp, err = this_.Request("GET", path, nil, sets...)
+func (this_ *Service) GetRequest(url string, sets ...Set) (resp *http.Response, err error) {
+	resp, err = this_.Request("GET", url, nil, sets...)
 	if err != nil {
 		return
 	}
 	return
 }
-func (this_ *Service) PostRequest(path string, body io.Reader, sets ...Set) (resp *http.Response, err error) {
-	resp, err = this_.Request("POST", path, body, sets...)
+func (this_ *Service) PostRequest(url string, body io.Reader, sets ...Set) (resp *http.Response, err error) {
+	resp, err = this_.Request("POST", url, body, sets...)
 	if err != nil {
 		return
 	}
 	return
 }
 func (this_ *Service) Get(path string, sets ...Set) (res []byte, err error) {
-	resp, err := this_.GetRequest(path, sets...)
+	url := this_.GetUrl(path)
+	resp, err := this_.GetRequest(url, sets...)
 	if err != nil {
 		return
 	}
-	res, err = this_.ReadResponse(resp)
+	res, err = ReadResponse(resp)
 	return
 }
 
 func (this_ *Service) Post(path string, data any, sets ...Set) (res []byte, err error) {
+	url := this_.GetUrl(path)
 	body, err := this_.DataReader(data)
 	if err != nil {
 		return
 	}
-	resp, err := this_.PostRequest(path, body, sets...)
+	resp, err := this_.PostRequest(url, body, sets...)
 	if err != nil {
 		return
 	}
-	res, err = this_.ReadResponse(resp)
+	res, err = ReadResponse(resp)
 	return
 }
 
@@ -125,16 +128,27 @@ func (this_ *Service) DataReader(data any) (res io.Reader, err error) {
 	if data == nil {
 		return
 	}
-	var bs []byte
-	bs, err = util.ObjToJsonBytes(data)
-	if err != nil {
-		err = errors.New("data reader data to json bytes error:" + err.Error())
-		return
+	switch t := data.(type) {
+	case io.Reader:
+		return t, nil
+	case []byte:
+		return bytes.NewReader(t), nil
+	case string:
+		return strings.NewReader(t), nil
+	case url.Values:
+		return strings.NewReader(t.Encode()), nil
+	default:
+		var bs []byte
+		bs, err = util.ObjToJsonBytes(data)
+		if err != nil {
+			err = errors.New("data reader data to json bytes error:" + err.Error())
+			return
+		}
+		res = bytes.NewReader(bs)
 	}
-	res = bytes.NewReader(bs)
 	return
 }
-func (this_ *Service) ReadResponse(resp *http.Response) (res []byte, err error) {
+func ReadResponse(resp *http.Response) (res []byte, err error) {
 	if resp.StatusCode != http.StatusOK {
 		err = errors.New(resp.Status)
 		return
@@ -147,6 +161,14 @@ func (this_ *Service) ReadResponse(resp *http.Response) (res []byte, err error) 
 	if err != nil {
 		return
 	}
+	return
+}
+func ResponseToObj[T any](resp *http.Response) (res T, bs []byte, err error) {
+	bs, err = ReadResponse(resp)
+	if err != nil {
+		return
+	}
+	res, err = HttpJsonToObj[T](bs)
 	return
 }
 
@@ -183,7 +205,6 @@ func HttpPost[T any](ser IService, path string, in any, sets ...Set) (res T, bod
 		return
 	}
 	res, err = HttpJsonToObj[T](body)
-	fmt.Println("body:" + string(body))
 	return
 }
 

@@ -57,10 +57,10 @@ type IService interface {
 	// Info 查看 zk 相关信息
 	Info() (info *Info, err error)
 
+	Request(method, url string, body io.Reader, sets ...Set) (resp *http.Response, err error)
+	GetRequest(url string, sets ...Set) (resp *http.Response, err error)
+	PostRequest(url string, body io.Reader, sets ...Set) (resp *http.Response, err error)
 	GetUrl(path string) (res string)
-	Request(method, path string, body io.Reader, sets ...Set) (resp *http.Response, err error)
-	GetRequest(path string, sets ...Set) (resp *http.Response, err error)
-	PostRequest(path string, body io.Reader, sets ...Set) (resp *http.Response, err error)
 	Get(path string, sets ...Set) (res []byte, err error)
 	Post(path string, data any, sets ...Set) (res []byte, err error)
 }
