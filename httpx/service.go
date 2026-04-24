@@ -72,7 +72,7 @@ func (this_ *Service) Request(method, url string, body io.Reader, sets ...Set) (
 	}
 	req, err := http.NewRequest(method, url, body)
 	if err != nil {
-		err = errors.New("http [" + this_.RootUrl + "] service NewRequest error:" + err.Error())
+		err = errors.New("http [" + url + "] service NewRequest error:" + err.Error())
 		return
 	}
 	request := &Request{}
@@ -82,6 +82,7 @@ func (this_ *Service) Request(method, url string, body io.Reader, sets ...Set) (
 	}
 	resp, err = this_.httpClient.Do(req)
 	if err != nil {
+		err = errors.New("request [" + url + "] Do error:" + err.Error())
 		return
 	}
 	return
