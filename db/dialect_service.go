@@ -5,11 +5,12 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"github.com/team-ide/framework"
 	"reflect"
 	"regexp"
 	"strconv"
 	"strings"
+
+	"github.com/team-ide/framework"
 
 	"go.uber.org/zap"
 )
@@ -1321,7 +1322,7 @@ func (this_ *DialectService) FormatSqlArgChar(sqlInfo string) (res string) {
 }
 
 func (this_ *DialectService) FormatPageSql(sqlInfo string, pageSize int64, pageNo int64) (res string) {
-	res = sqlInfo
+	res = sqlInfo + fmt.Sprintf(" LIMIT %d,%d", pageSize*(pageNo-1), pageSize)
 	return
 }
 
