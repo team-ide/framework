@@ -2,9 +2,10 @@ package web_fasthttp
 
 import (
 	"fmt"
-	"github.com/valyala/fasthttp"
 	"io"
 	"time"
+
+	"github.com/valyala/fasthttp"
 
 	"github.com/team-ide/framework/web"
 )
@@ -115,4 +116,31 @@ func (this_ *WebServiceFast) ClientIP(request *web.WebRequest) string {
 func (this_ *WebServiceFast) UserAgent(request *web.WebRequest) string {
 	c := request.GetRequestCtx().(*fasthttp.RequestCtx)
 	return string(c.UserAgent())
+}
+
+func (this_ *WebServiceFast) GetFiles(name string, request *web.WebRequest) (res []*web.UploadFile, err error) {
+	c := request.GetRequestCtx().(*fasthttp.RequestCtx)
+	// 获取表单数据中的文件字段，这里假设字段名为"files"
+	form, err := c.MultipartForm()
+	if err != nil {
+		return
+	}
+
+	files := form.File[name] // 获取名为"files"的所有文件
+	for _, file := range files {
+		f := &web.UploadFile{}
+		f.Filename = file.Filename
+		f.Size = file.Size
+		f.ReadCloser, err = file.Open()
+		if err != nil {
+			return
+		}
+		res = append(res, f)
+	}
+	return
+}
+
+func (this_ *WebServiceFast) GetWriter(request *web.WebRequest) io.Writer {
+	c := request.GetRequestCtx().(*fasthttp.RequestCtx)
+	return c
 }

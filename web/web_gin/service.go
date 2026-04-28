@@ -1,11 +1,12 @@
 package web_gin
 
 import (
-	"github.com/gin-gonic/gin"
 	"io"
 	"log"
 	"net/http"
 	"time"
+
+	"github.com/gin-gonic/gin"
 
 	"github.com/team-ide/framework/web"
 )
@@ -126,4 +127,31 @@ func (this_ *WebServiceGin) ClientIP(request *web.WebRequest) string {
 func (this_ *WebServiceGin) UserAgent(request *web.WebRequest) string {
 	c := request.GetRequestCtx().(*gin.Context)
 	return c.Request.UserAgent()
+}
+
+func (this_ *WebServiceGin) GetFiles(name string, request *web.WebRequest) (res []*web.UploadFile, err error) {
+	c := request.GetRequestCtx().(*gin.Context)
+	// 获取表单数据中的文件字段，这里假设字段名为"files"
+	form, err := c.MultipartForm()
+	if err != nil {
+		return
+	}
+
+	files := form.File[name] // 获取名为"files"的所有文件
+	for _, file := range files {
+		f := &web.UploadFile{}
+		f.Filename = file.Filename
+		f.Size = file.Size
+		f.ReadCloser, err = file.Open()
+		if err != nil {
+			return
+		}
+		res = append(res, f)
+	}
+	return
+}
+
+func (this_ *WebServiceGin) GetWriter(request *web.WebRequest) io.Writer {
+	c := request.GetRequestCtx().(*gin.Context)
+	return c.Writer
 }

@@ -85,6 +85,8 @@ func (this_ *WebServer) toAssets(requestInfo string, request *WebRequest) (ok bo
 	return
 }
 
+var NotFoundError = errors.New("404 page not found")
+
 func (this_ *WebServer) doApiRouterHandle(requestInfo string, request *WebRequest) (err error) {
 
 	request.HandleStartTime = time.Now()
@@ -97,9 +99,7 @@ func (this_ *WebServer) doApiRouterHandle(requestInfo string, request *WebReques
 		}
 		request.Response = WebNotResponse
 		if !ok {
-			this_.SetStatus(request, http.StatusNotFound)
-			this_.SetHeader(request, "Content-Type", "text/plain; charset=utf-8")
-			this_.ResponseWrite(request, []byte("404 page ["+request.Path+"] not found"))
+			err = NotFoundError
 			return
 		}
 	} else {
@@ -129,13 +129,14 @@ func (this_ *WebServer) DoRequest(request *WebRequest) {
 
 	this_.Debug(requestInfo + " start")
 	var err error
+	var isNotFoundError bool
 	defer func() {
 		if e := recover(); e != nil {
 			err = errors.New(fmt.Sprint(e))
 			this_.Error(requestInfo + " panic error:" + fmt.Sprint(e))
 		}
 		// 如果 结果 是不输出 则跳过
-		if request.Response != WebNotResponse {
+		if !isNotFoundError && request.Response != WebNotResponse {
 			this_.ResponseJsonData(request, request.Response, err)
 		}
 	}()
@@ -143,6 +144,14 @@ func (this_ *WebServer) DoRequest(request *WebRequest) {
 	// this_.Debug(requestInfo + " do filters")
 	err = this_.doFilters(requestInfo, request)
 	if err != nil {
+		isNotFoundError = errors.Is(err, NotFoundError)
+		if isNotFoundError {
+			err = nil
+			this_.SetStatus(request, http.StatusNotFound)
+			this_.SetHeader(request, "Content-Type", "text/plain; charset=utf-8")
+			this_.ResponseWrite(request, []byte("404 page ["+request.Path+"] not found"))
+			return
+		}
 		return
 	}
 

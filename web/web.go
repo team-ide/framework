@@ -202,6 +202,14 @@ type IWebService interface {
 	RawQuery(request *WebRequest) string
 	ClientIP(request *WebRequest) string
 	UserAgent(request *WebRequest) string
+	GetFiles(name string, request *WebRequest) (res []*UploadFile, err error)
+	GetWriter(request *WebRequest) io.Writer
+}
+
+type UploadFile struct {
+	Filename string
+	Size     int64
+	io.ReadCloser
 }
 
 type WebServer struct {
@@ -775,6 +783,10 @@ func (this_ *WebRequest) GetHeader(key string) string {
 	return this_.webServer.GetHeader(this_, key)
 }
 
+func (this_ *WebRequest) SetHeader(key string, value string) {
+	this_.webServer.SetHeader(this_, key, value)
+}
+
 func (this_ *WebRequest) GetParam(key string) string {
 	return this_.webServer.GetParam(this_, key)
 }
@@ -785,6 +797,15 @@ func (this_ *WebRequest) ClientIP() string {
 
 func (this_ *WebRequest) UserAgent() string {
 	return this_.webServer.UserAgent(this_)
+}
+func (this_ *WebRequest) GetFiles(name string) (res []*UploadFile, err error) {
+	return this_.webServer.GetFiles(name, this_)
+}
+func (this_ *WebRequest) GetWriter() io.Writer {
+	return this_.webServer.GetWriter(this_)
+}
+func (this_ *WebRequest) SetStatus(status int) {
+	this_.webServer.SetStatus(this_, status)
 }
 
 func (this_ *WebRequest) RawQuery() string {
