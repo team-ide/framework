@@ -33,13 +33,13 @@ type Config struct {
 	// Disabled 禁用 上层 初始化服务时候 可以判断该属性 如果为 配置 true 则不去初始化服务
 	Disabled bool `json:"disabled,omitempty" yaml:"disabled,omitempty"`
 
-	Host           string `json:"host,omitempty"`
-	Port           int    `json:"port,omitempty"`
-	Context        string `json:"context,omitempty"`
-	AssetsDir      string `json:"assetsDir,omitempty"`
-	AssetsSeparate string `json:"assetsSeparate,omitempty"` // assets 分割字符 默认 assets/
-	FilesDir       string `json:"filesDir,omitempty"`
-	FilesSeparate  string `json:"filesSeparate,omitempty"` // files 分割字符 默认 files/
+	Host    string `json:"host,omitempty" yaml:"host,omitempty"`
+	Port    int    `json:"port,omitempty" yaml:"port,omitempty"`
+	Context string `json:"context,omitempty" yaml:"context,omitempty"`
+
+	Assets *Assets `json:"assets,omitempty" yaml:"assets,omitempty"`
+
+	Files *Files `json:"files,omitempty" yaml:"files,omitempty"`
 
 	MaxMultipartMemory int64 `json:"maxMultipartMemory,omitempty"`
 
@@ -49,6 +49,26 @@ type Config struct {
 	Replaces      map[string]*ConfigReplace `json:"replaces,omitempty"`
 	GinDefaultLog bool                      `json:"ginDefaultLog,omitempty"`
 	GinErrorLog   bool                      `json:"ginErrorLog,omitempty"`
+}
+
+var (
+	defaultAssetsDir = "assets/"
+)
+
+type Assets struct {
+	Open    bool   `json:"open,omitempty" yaml:"open,omitempty"`
+	Context string `json:"context,omitempty" yaml:"context,omitempty"`
+	Dir     string `json:"dir,omitempty" yaml:"dir,omitempty"`
+}
+
+var (
+	defaultFilesDir = "files/"
+)
+
+type Files struct {
+	Open    bool   `json:"open,omitempty" yaml:"open,omitempty"`
+	Context string `json:"context,omitempty" yaml:"context,omitempty"`
+	Dir     string `json:"dir,omitempty" yaml:"dir,omitempty"`
 }
 
 type ConfigTls struct {
@@ -79,24 +99,33 @@ func (this_ *Config) Init() {
 	if !strings.HasSuffix(this_.Context, "/") {
 		this_.Context += "/"
 	}
-	if this_.AssetsDir == "" {
-		this_.AssetsDir = "assets/"
+	if this_.Assets != nil {
+		if this_.Assets.Context != "" {
+			if !strings.HasPrefix(this_.Assets.Context, "/") {
+				this_.Assets.Context = "/" + this_.Assets.Context
+			}
+			if !strings.HasSuffix(this_.Assets.Context, "/") {
+				this_.Assets.Context += "/"
+			}
+		}
+		if !strings.HasSuffix(this_.Assets.Dir, "/") {
+			this_.Assets.Dir += "/"
+		}
 	}
-	if !strings.HasSuffix(this_.AssetsDir, "/") {
-		this_.AssetsDir += "/"
+	if this_.Files != nil {
+		if this_.Files.Context != "" {
+			if !strings.HasPrefix(this_.Files.Context, "/") {
+				this_.Files.Context = "/" + this_.Files.Context
+			}
+			if !strings.HasSuffix(this_.Files.Context, "/") {
+				this_.Files.Context += "/"
+			}
+		}
+		if !strings.HasSuffix(this_.Files.Dir, "/") {
+			this_.Files.Dir += "/"
+		}
 	}
-	if this_.AssetsSeparate == "" {
-		this_.AssetsSeparate = "assets/"
-	}
-	if this_.FilesDir == "" {
-		this_.FilesDir = "files/"
-	}
-	if !strings.HasSuffix(this_.FilesDir, "/") {
-		this_.FilesDir += "/"
-	}
-	if this_.FilesSeparate == "" {
-		this_.FilesSeparate = "files/"
-	}
+
 	if this_.MaxMultipartMemory == 0 {
 		this_.MaxMultipartMemory = 1024 << 20 // 1 G 最大上传大小
 	}
